@@ -64,7 +64,7 @@ class LivroController {
     static async create(req: Request, res: Response) {
         try {
 
-            const { id_autor, titulo, descricao, preco, id_categoria, destaque, id_editora, id_colecao } = req.body;
+            const { id_autor, titulo, descricao, id_categoria, destaque, id_editora, id_colecao } = req.body;
 
             const arquivos = req.files as {
                 [fieldname: string]: Express.Multer.File[];
@@ -83,7 +83,6 @@ class LivroController {
                 id_autor,
                 titulo,
                 descricao,
-                preco: parseFloat(String(preco).replace(",", ".")),
                 id_categoria,
                 id_editora,
                 id_colecao: id_colecao || null,
@@ -106,7 +105,7 @@ class LivroController {
         }
         try {
             const { id } = req.params;
-            const { id_autor, titulo, descricao, preco, id_categoria, destaque, id_editora, id_colecao } = req.body;
+            const { id_autor, titulo, descricao, id_categoria, destaque, id_editora, id_colecao } = req.body;
             const livro = await Livro.findByPk(Number(id));
 
             if (!livro) {
@@ -122,7 +121,6 @@ class LivroController {
                 id_autor,
                 titulo,
                 descricao,
-                preco: parseFloat(String(preco).replace(",", ".")),
                 capa_imagem,
                 arquivo_pdf,
                 id_categoria,

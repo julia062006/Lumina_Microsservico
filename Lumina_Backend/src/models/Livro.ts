@@ -10,7 +10,6 @@ class Livro extends Model {
     declare id_autor: number;
     declare titulo: string;
     declare descricao: string;
-    declare preco: number;
     declare capa_imagem: string;
     declare arquivo_pdf: string;
     declare id_categoria: number;
@@ -39,10 +38,6 @@ Livro.init({
     },
     descricao: {
         type: DataTypes.TEXT,
-        allowNull: false
-    },
-    preco: {
-        type: DataTypes.FLOAT,
         allowNull: false
     },
     capa_imagem: {

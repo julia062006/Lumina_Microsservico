@@ -45,7 +45,7 @@ class CategoriaController {
       return res.status(400).json({ erros: erros.array() });
     }
     try {
-      const { nome, descricao } = req.body;
+      const { nome, descricao, destaque } = req.body;
 
       if (!nome || !descricao) {
         return res.status(400).json({
@@ -56,6 +56,7 @@ class CategoriaController {
       const categoria = await Categoria.create({
         nome: nome,
         descricao: descricao,
+        destaque: destaque ?? false
       });
       return res.status(201).json(categoria);
     } catch (erro) {
