@@ -4,7 +4,7 @@ import { criarCategoria } from "../../../services/api";
 import { BotaoPrimario, BotaoSecundario } from "../../../componentes/Botao";
 import Input from "../../../componentes/Input";
 import Formulario from "../../../componentes/Formulario";
-import { validacoesTexto, MENSAGENS } from "../../../utilitarios/validacoes";
+import { validacoesTexto, MENSAGENS, validacoesSelect } from "../../../utilitarios/validacoes";
 import { alertaSucesso, alertaErro } from "../../../utilitarios/formulario";
 
 function CadastrarCategoria() {
@@ -16,6 +16,7 @@ function CadastrarCategoria() {
             const resposta = await criarCategoria({
                 nome: dados.nome,
                 descricao: dados.descricao,
+                destaque: dados.destaque
             });
 
             if (!resposta.ok) {
@@ -30,7 +31,7 @@ function CadastrarCategoria() {
             console.error(MENSAGENS.ERRO_SERVIDOR, erro);
             await alertaErro(MENSAGENS.ERRO_SERVIDOR);
             console.log(erro);
-            
+
         }
     }
 
@@ -53,6 +54,19 @@ function CadastrarCategoria() {
                     register={(name) => register(name, validacoesTexto("A descrição é obrigatória"))}
                     error={errors.descricao}
                 />
+
+                <div className="mt-4">
+                    <label>Destaque</label>
+                    <select
+                        {...register("destaque", validacoesSelect("Destaque é obrigatório"))}
+                        className="block w-full mt-2 border p-2"
+                    >
+                        <option value="">Selecione</option>
+                        <option value="true">Sim</option>
+                        <option value="false">Não</option>
+                    </select>
+                    {errors.destaque && <p>{errors.destaque.message}</p>}
+                </div>
 
                 <div className="flex gap-4 mt-4">
                     <BotaoPrimario type="submit">Cadastrar</BotaoPrimario>

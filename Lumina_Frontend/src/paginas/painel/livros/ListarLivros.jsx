@@ -44,7 +44,6 @@ function ListarLivros() {
                         <>
                             <td className="px-4 py-2">{livro.titulo}</td>
                             <td className="px-4 py-2">{livro.autor?.nome}</td>
-                            <td className="px-4 py-2">{Number(livro.preco).toLocaleString("pt-BR", { style: "currency", currency: "BRL" })}</td>
                             <td className="px-4 py-2">{livro.destaque === true || livro.destaque === "true" ? "Sim" : "Não"}</td>
                         </>
                     )}

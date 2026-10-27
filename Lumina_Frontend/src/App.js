@@ -28,6 +28,7 @@ import EditarEditoras from "./paginas/painel/editoras/EditarEditoras";
 import ListarColecao from "./paginas/painel/colecao/ListarColecao";
 import CadastroColecao from "./paginas/painel/colecao/CadastroColecao";
 import EditarColecao from "./paginas/painel/colecao/EditarColecao";
+import RotaAdmin from "./rotas/RotaAdmin";
 
 function App() {
 
@@ -48,30 +49,30 @@ function App() {
           <Route path="/livros/autor/:id" element={<Biblioteca />} />
           <Route path="/categorias" element={<Categorias />} />
 
-          <Route path="/painel" element={<RotaProtegida><Painel /></RotaProtegida>} />
+          <Route path="/painel" element={<RotaAdmin><Painel /></RotaAdmin>} />
 
-          <Route path="/painel/usuarios" element={<RotaProtegida><ListarUsuarios /></RotaProtegida>} />
+          <Route path="/painel/usuarios" element={<RotaAdmin><ListarUsuarios /></RotaAdmin>} />
 
-          <Route path="/painel/livros" element={<RotaProtegida><ListarLivros /></RotaProtegida>} />
-          <Route path="/painel/cadastroLivro" element={<RotaProtegida><CadastrarLivro /></RotaProtegida>} />
-          <Route path="/painel/editarLivro/:id" element={<RotaProtegida><EditarLivro /></RotaProtegida>} />
+          <Route path="/painel/livros" element={<RotaAdmin><ListarLivros /></RotaAdmin>} />
+          <Route path="/painel/cadastroLivro" element={<RotaAdmin><CadastrarLivro /></RotaAdmin>} />
+          <Route path="/painel/editarLivro/:id" element={<RotaAdmin><EditarLivro /></RotaAdmin>} />
 
-          <Route path="/painel/autores" element={<RotaProtegida><ListarAutores /></RotaProtegida>} />
-          <Route path="/painel/cadastroAutor" element={<RotaProtegida><CadastrarAutor /></RotaProtegida>} />
-          <Route path="/painel/editarAutor/:id" element={<RotaProtegida><EditarAutor /></RotaProtegida>} />
+          <Route path="/painel/autores" element={<RotaAdmin><ListarAutores /></RotaAdmin>} />
+          <Route path="/painel/cadastroAutor" element={<RotaAdmin><CadastrarAutor /></RotaAdmin>} />
+          <Route path="/painel/editarAutor/:id" element={<RotaAdmin><EditarAutor /></RotaAdmin>} />
 
 
-          <Route path="/painel/categorias" element={<RotaProtegida><ListarCategorias /></RotaProtegida>} />
-          <Route path="/painel/cadastroCategoria" element={<RotaProtegida><CadastrarCategoria /></RotaProtegida>} />
-          <Route path="/painel/editarCategoria/:id" element={<RotaProtegida><EditarCategoria /></RotaProtegida>} />
+          <Route path="/painel/categorias" element={<RotaAdmin><ListarCategorias /></RotaAdmin>} />
+          <Route path="/painel/cadastroCategoria" element={<RotaAdmin><CadastrarCategoria /></RotaAdmin>} />
+          <Route path="/painel/editarCategoria/:id" element={<RotaAdmin><EditarCategoria /></RotaAdmin>} />
 
-          <Route path="/painel/editoras" element={<RotaProtegida><ListarEditoras /></RotaProtegida>} />
-          <Route path="/painel/cadastroEditora" element={<RotaProtegida><CadastroEditoras /></RotaProtegida>} />
-          <Route path="/painel/editarEditora/:id" element={<RotaProtegida><EditarEditoras /></RotaProtegida>} />
+          <Route path="/painel/editoras" element={<RotaAdmin><ListarEditoras /></RotaAdmin>} />
+          <Route path="/painel/cadastroEditora" element={<RotaAdmin><CadastroEditoras /></RotaAdmin>} />
+          <Route path="/painel/editarEditora/:id" element={<RotaAdmin><EditarEditoras /></RotaAdmin>} />
 
-          <Route path="/painel/colecao" element={<RotaProtegida><ListarColecao /></RotaProtegida>} />
-          <Route path="/painel/cadastroColecao" element={<RotaProtegida><CadastroColecao /></RotaProtegida>} />
-          <Route path="/painel/editarColecao/:id" element={<RotaProtegida><EditarColecao /></RotaProtegida>} />
+          <Route path="/painel/colecao" element={<RotaAdmin><ListarColecao /></RotaAdmin>} />
+          <Route path="/painel/cadastroColecao" element={<RotaAdmin><CadastroColecao /></RotaAdmin>} />
+          <Route path="/painel/editarColecao/:id" element={<RotaAdmin><EditarColecao /></RotaAdmin>} />
 
         </Routes>
       </main>

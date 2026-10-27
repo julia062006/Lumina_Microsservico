@@ -15,3 +15,7 @@ export function formatarCPF(cpf) {
         .replace(/(\d{3})(\d)/, "$1.$2")
         .replace(/(\d{3})(\d{1,2})$/, "$1-$2");
 }
+
+export function urlFotoPerfil(foto) {
+    return foto ? `/api/uploads/${foto}` : null;
+}

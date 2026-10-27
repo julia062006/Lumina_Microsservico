@@ -6,6 +6,8 @@ import fundo from "../imagens/planofundo2.png";
 import { excluirUsuario } from "../services/api";
 import { alertaConfirmacao, alertaSucesso, alertaErro } from "../utilitarios/formulario";
 import { MENSAGENS } from "../utilitarios/validacoes";
+import Avatar from "../componentes/Avatar";
+import { urlFotoPerfil } from "../utilitarios/formatadores";
 
 function Perfil() {
 
@@ -34,42 +36,44 @@ function Perfil() {
 
     return (
         <div style={{ backgroundImage: `url(${fundo})` }} className="bg-cover bg-center py-24 pb-24">
-            <div className="max-w-lg mx-auto p-6 border rounded-lg shadow bg-white">
+            <div className="relative max-w-lg mx-auto p-8 border rounded-lg shadow bg-white">
 
-                <div className="flex items-center justify-between mb-4">
-                    <h2 className="text-2xl font-bold">Perfil</h2>
+                <div className="absolute top-4 right-4">
+                    <BotaoSecundario onClick={sair}>
+                        <LogOut />
+                        Sair
+                    </BotaoSecundario>
+                </div>
+
+                <div className="flex flex-col items-center text-center pt-8">
+                    <Avatar foto={urlFotoPerfil(usuario.foto_perfil)} nome={usuario.nome} />
+                    <h2 className="text-2xl font-bold mt-4">{usuario.nome}</h2>
+                    <p className="text-gray-500">{usuario.email}</p>
+                </div>
+
+                <div className="flex items-center justify-center gap-4 mt-6">
                     <BotaoSecundario onClick={() => navigate("/editarPerfil")}>
                         <Pencil />
                         Editar perfil
                     </BotaoSecundario>
-                </div>
 
-                <div className="space-y-2">
-                    <p><strong>Nome:</strong> {usuario.nome}</p>
-                    <p><strong>Email:</strong> {usuario.email}</p>
-                </div>
-
-                <div className="flex items-center gap-4 mb-4">
-                    <div className="mt-6">
+                    {usuario?.role === "admin" && (
                         <BotaoPrimario onClick={() => navigate("/painel")}>
                             Acessar painel
                         </BotaoPrimario>
-                    </div>
-
-                    <div className="mt-6">
-                        <BotaoSecundario onClick={sair}>
-                            <LogOut />
-                            Sair da Conta
-                        </BotaoSecundario>
-                    </div>
-
-                    <div className="mt-6">
-                        <BotaoSecundario onClick={() => excluir(usuario.id)} className="!text-red-500 !border-red-500">
-                            <Trash2 />
-                            Excluir minha conta
-                        </BotaoSecundario>
-                    </div>
+                    )}
                 </div>
+
+                <div className="border-t mt-8 pt-6 flex justify-center">
+                    <button
+                        onClick={() => excluir(usuario.id_usuario)}
+                        className="inline-flex items-center gap-2 text-sm text-red-500 hover:text-red-700 hover:underline"
+                    >
+                        <Trash2 size={16} />
+                        Excluir minha conta
+                    </button>
+                </div>
+
             </div>
         </div>
     );
