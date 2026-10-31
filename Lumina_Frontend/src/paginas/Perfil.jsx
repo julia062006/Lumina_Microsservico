@@ -52,16 +52,17 @@ function Perfil() {
                 </div>
 
                 <div className="flex items-center justify-center gap-4 mt-6">
-                    <BotaoSecundario onClick={() => navigate("/editarPerfil")}>
-                        <Pencil />
-                        Editar perfil
-                    </BotaoSecundario>
-
                     {usuario?.role === "admin" && (
                         <BotaoPrimario onClick={() => navigate("/painel")}>
                             Acessar painel
                         </BotaoPrimario>
                     )}
+
+                    <BotaoSecundario onClick={() => navigate("/editarPerfil")}>
+                        <Pencil />
+                        Editar perfil
+                    </BotaoSecundario>
+
                 </div>
 
                 <div className="border-t mt-8 pt-6 flex justify-center">
