@@ -1,23 +1,16 @@
 import { NestFactory } from '@nestjs/core';
 import { ConfigService } from '@nestjs/config';
-import { Transport } from '@nestjs/microservices';
+import { Logger } from '@nestjs/common';
 import { AppModule } from './app.module';
 
 async function bootstrap() {
   const app = await NestFactory.create(AppModule);
   const config = app.get(ConfigService);
 
-  app.connectMicroservice({
-    transport: Transport.REDIS,
-    options: {
-      host: config.get<string>('REDIS_HOST', 'localhost'),
-      port: config.get<number>('REDIS_PORT', 6379),
-      retryAttempts: 10,
-      retryDelay: 3000,
-    },
-  });
+  app.enableShutdownHooks();
 
-  await app.startAllMicroservices();
-  await app.listen(config.get<number>('PORT', 3001));
+  const port = config.get<number>('PORT', 3001);
+  await app.listen(port);
+  new Logger('Bootstrap').log(`Microsserviço de notificações rodando na porta ${port}`);
 }
 bootstrap();

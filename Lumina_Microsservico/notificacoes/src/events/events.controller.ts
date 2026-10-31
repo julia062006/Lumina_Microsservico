@@ -1,7 +1,7 @@
 import { Controller, Logger } from '@nestjs/common';
 import { EventPattern, Payload } from '@nestjs/microservices';
 import { NotificationsService } from '../notifications/notifications.service';
-import { LivroCadastradoEvent } from './livro-cadastrado.event';
+import { LivroCadastradoEvent } from './dto/livro-cadastrado.event';
 
 @Controller()
 export class EventsController {

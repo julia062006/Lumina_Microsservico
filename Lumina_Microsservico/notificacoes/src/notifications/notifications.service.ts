@@ -1,5 +1,5 @@
 import { Injectable, Logger } from '@nestjs/common';
-import { LivroCadastradoEvent } from '../events/livro-cadastrado.event';
+import { LivroCadastradoEvent } from '../events/dto/livro-cadastrado.event';
 
 @Injectable()
 export class NotificationsService {
