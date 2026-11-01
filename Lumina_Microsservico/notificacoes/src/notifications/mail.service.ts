@@ -15,12 +15,13 @@ export class MailService {
     });
   }
 
-  async enviar(para: string, assunto: string, html: string) {
+  async enviar(para: string, assunto: string, html: string, attachments?: nodemailer.SendMailOptions['attachments']) {
     await this.transporter.sendMail({
       from: this.cfg.get('MAIL_FROM'),
       to: para,
       subject: assunto,
       html,
+      attachments
     });
     this.logger.log(`[EMAIL] Enviado para ${para}`);
   }
