@@ -3,6 +3,7 @@ import { ConfigModule } from '@nestjs/config';
 import { EventsModule } from './events/events.module';
 import { NotificationsModule } from './notifications/notifications.module';
 import { RedisModule } from './redis/redis.module';
+import { HttpModule } from './http/http.module';
 
 @Module({
   imports: [
@@ -10,6 +11,7 @@ import { RedisModule } from './redis/redis.module';
     RedisModule,
     NotificationsModule,
     EventsModule,
+    HttpModule
   ],
 })
-export class AppModule {}
+export class AppModule { }

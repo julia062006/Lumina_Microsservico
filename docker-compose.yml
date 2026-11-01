@@ -64,6 +64,7 @@ services:
       SECRET: ${JWT_SECRET}
       REDIS_HOST: redis
       REDIS_PORT: 6379
+      INTERNAL_API_KEY: ${INTERNAL_API_KEY}
     ports:
       - "3000:3000"
     depends_on:

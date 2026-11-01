@@ -11,11 +11,13 @@ import { validarErros } from "./middlewares/validarErros";
 import EditoraController from "./controllers/editoraController";
 import ColecaoController from "./controllers/colecaoController";
 import { AutorizarRoles } from "./middlewares/autorizarRole";
+import { AutenticarChaveInterna } from "./middlewares/autenticarChaveInterna";
 
 const router = Router();
 
 router.post("/usuarios", upload.single("foto_perfil"), validarUsuario, validarErros, UsuarioController.create);
 router.post("/entrar", UsuarioController.login);
+router.get("/internal/destinatarios", AutenticarChaveInterna, UsuarioController.destinatarios);
 
 router.get("/usuarios", AutenticarToken, AutorizarRoles("admin"), UsuarioController.findAll);
 router.get("/usuarios/:id", AutenticarToken, AutorizarRoles("admin"), UsuarioController.getById);
