@@ -77,6 +77,31 @@ services:
     networks:
       - app-network
 
+  notificacoes:
+    build:
+      context: ./Lumina_Microsservico/notificacoes
+      dockerfile: Dockerfile
+    container_name: notificacoes_service
+    restart: always
+    environment:
+      REDIS_HOST: redis
+      REDIS_PORT: 6379
+      BACKEND_URL: http://backend:3000
+      INTERNAL_API_KEY: ${INTERNAL_API_KEY}
+      FRONTEND_URL: ${FRONTEND_URL}
+      SMTP_HOST: ${SMTP_HOST}
+      SMTP_PORT: ${SMTP_PORT}
+      SMTP_USER: ${SMTP_USER}
+      SMTP_PASS: ${SMTP_PASS}
+      MAIL_FROM: ${MAIL_FROM}
+    depends_on:
+      redis:
+        condition: service_healthy
+      backend:
+        condition: service_started
+    networks:
+      - app-network
+
   frontend:
     build:
       context: ./Lumina_Frontend
