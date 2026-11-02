@@ -4,6 +4,7 @@ import { validationResult } from "express-validator";
 import { WhereOptions } from "sequelize";
 import path from "node:path";
 import fs from "fs";
+import { redisPub } from "../config/redis";
 
 class LivroController {
 
@@ -90,6 +91,28 @@ class LivroController {
                 arquivo_pdf: pdf.filename,
                 destaque: destaque === "true",
             });
+
+            try {
+                const completo = await Livro.findByPk(livro.id_livro, {
+                    include: [
+                        { association: "autor" },
+                        { association: "editora" },
+                    ],
+                });
+                const dados: any = completo?.toJSON();
+
+                await redisPub.publish("livro.cadastrado", JSON.stringify({
+                    id_livro: dados.id_livro,
+                    titulo: dados.titulo,
+                    descricao: dados.descricao,
+                    capa_imagem: dados.capa_imagem,
+                    autor: dados.autor?.nome,
+                    editora: dados.editora?.nome,
+                }));
+                console.log(`[REDIS] Evento livro.cadastrado publicado (id_livro=${dados.id_livro})`);
+            } catch (err) {
+                console.error("[REDIS] Falha ao publicar livro.cadastrado:", err);
+            }
 
             return res.status(201).json(livro);
 

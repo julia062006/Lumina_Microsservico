@@ -298,6 +298,16 @@ class UsuarioController {
             return res.status(500).json({ mensagem: "Erro interno do servidor" });
         }
     }
+
+    static async destinatarios(req: Request, res: Response) {
+        try {
+            const usuarios = await Usuario.findAll({ attributes: ["email"] });
+            return res.status(200).json(usuarios);
+        } catch (erro) {
+            return res.status(500).json({ mensagem: "Erro interno do servidor" });
+        }
+    }
+
 }
 
 export default UsuarioController;
