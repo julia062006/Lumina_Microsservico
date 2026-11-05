@@ -160,7 +160,7 @@ class LivroController {
                 destaque: destaque === "true"
             });
 
-        
+            await invalidarPrefixo("livros:");
 
             return res.status(200).json({ mensagem: "Livro atualizado com sucesso" });
 

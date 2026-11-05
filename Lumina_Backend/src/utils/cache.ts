@@ -23,7 +23,8 @@ export async function cacheAside<T>(
 
     if (dados !== null && dados !== undefined) {
         try {
-            await redisCache.set(chave, JSON.stringify(dados), "EX", ttlSegundos);
+            const ttlFinal = Number(process.env.CACHE_TTL_OVERRIDE) || ttlSegundos;
+            await redisCache.set(chave, JSON.stringify(dados), "EX", ttlFinal);
         } catch (err) {
             console.error(`[CACHE] Falha ao gravar ${chave}: ${(err as Error).message}`);
         }
