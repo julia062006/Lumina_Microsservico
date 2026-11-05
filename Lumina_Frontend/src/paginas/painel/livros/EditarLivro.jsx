@@ -5,7 +5,7 @@ import { editarLivro, getAutores, getCategorias, getEditoras, getColecoes } from
 import { BotaoPrimario, BotaoSecundario } from "../../../componentes/Botao";
 import Input from "../../../componentes/Input";
 import Formulario from "../../../componentes/Formulario";
-import { validacoesNome, validacoesTexto, MENSAGENS, validacoesSelect} from "../../../utilitarios/validacoes";
+import { validacoesNome, validacoesTexto, MENSAGENS, validacoesSelect } from "../../../utilitarios/validacoes";
 import { alertaSucesso, alertaErro } from "../../../utilitarios/formulario";
 
 
@@ -20,6 +20,7 @@ function EditarLivro() {
     const [categorias, setCategorias] = useState([]);
     const [editoras, setEditoras] = useState([]);
     const [colecoes, setColecoes] = useState([]);
+    const [carregado, setCarregado] = useState(false);
 
     useEffect(() => {
         if (!livro) {
@@ -38,18 +39,22 @@ function EditarLivro() {
             setCategorias(resCategorias.data);
             setEditoras(resEditoras.data);
             setColecoes(resColecoes.data);
-
-            setValue("titulo", livro.titulo);
-            setValue("descricao", livro.descricao);
-            setValue("id_autor", livro.id_autor);
-            setValue("id_categoria", livro.id_categoria);
-            setValue("id_editora", livro.id_editora);
-            setValue("id_colecao", livro.id_colecao || "");
-            setValue("destaque", String(livro.destaque));
-
+            setCarregado(true);
         }
         carregarSelects();
     }, [livro]);
+
+    useEffect(() => {
+        if (!carregado || !livro) return;
+
+        setValue("titulo", livro.titulo);
+        setValue("descricao", livro.descricao);
+        setValue("id_autor", livro.id_autor);
+        setValue("id_categoria", livro.id_categoria);
+        setValue("id_editora", livro.id_editora);
+        setValue("id_colecao", livro.id_colecao || "");
+        setValue("destaque", String(livro.destaque));
+    }, [carregado, livro, setValue]);
 
     async function salvar(dados) {
         try {

@@ -38,13 +38,17 @@ function ListarLivros() {
                 </div>
 
                 <Tabela
-                    colunas={["Título", "Autor", "Preço", "Destaque"]}
+                    colunas={["Título", "Autor", "Categoria", "Editora", "Destaque"]}
                     dados={livrosPaginados}
                     renderLinha={(livro) => (
                         <>
                             <td className="px-4 py-2">{livro.titulo}</td>
                             <td className="px-4 py-2">{livro.autor?.nome}</td>
-                            <td className="px-4 py-2">{livro.destaque === true || livro.destaque === "true" ? "Sim" : "Não"}</td>
+                            <td className="px-4 py-2">{livro.categoria?.nome ?? "-"}</td>
+                            <td className="px-4 py-2">{livro.editora?.nome ?? "-"}</td>
+                            <td className="px-4 py-2">
+                                {livro.destaque === true || livro.destaque === "true" ? "Sim" : "Não"}
+                            </td>
                         </>
                     )}
                     renderAcoes={(livro) => (
