@@ -11,5 +11,9 @@
     "test:e2e": "cd Lumina_Frontend && npx playwright test",
     "test": "npm run test:backend && npm run test:e2e",
     "typecheck": "cd Lumina_Backend && npm run typecheck"
+  },
+  "dependencies": {
+    "mysql2": "^3.24.6",
+    "sequelize": "^6.37.8"
   }
 }
