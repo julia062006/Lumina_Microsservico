@@ -21,7 +21,7 @@ router.get("/internal/destinatarios", AutenticarChaveInterna, UsuarioController.
 
 router.get("/usuarios", AutenticarToken, AutorizarRoles("admin"), UsuarioController.findAll);
 router.get("/usuarios/:id", AutenticarToken, AutorizarRoles("admin"), UsuarioController.getById);
-router.delete("/usuarios/:id", AutenticarToken, AutorizarRoles("admin"), UsuarioController.remove);
+router.delete("/usuarios/:id", AutenticarToken, UsuarioController.remove);
 router.put("/usuarios/:id", AutenticarToken, upload.single("foto_perfil"), validarAtualizacaoUsuario, validarErros, UsuarioController.update);
 router.get("/perfil", AutenticarToken, UsuarioController.perfil);
 
