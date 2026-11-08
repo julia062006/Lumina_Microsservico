@@ -1,5 +1,6 @@
 import { Request, Response } from "express";
 import Colecao from "../models/Colecao";
+import { invalidarPrefixo } from "../utils/cache";
 
 class ColecaoController {
 
@@ -68,7 +69,7 @@ class ColecaoController {
                 nome,
                 descricao
             });
-
+            await invalidarPrefixo("livros:");
             return res.status(200).json({ mensagem: "Coleção atualizada com sucesso" });
 
         } catch (erro) {
@@ -88,7 +89,7 @@ class ColecaoController {
             }
 
             await colecao.destroy();
-
+            await invalidarPrefixo("livros:");
             return res.status(200).json({ mensagem: "Coleção removida com sucesso" });
 
         } catch (erro) {

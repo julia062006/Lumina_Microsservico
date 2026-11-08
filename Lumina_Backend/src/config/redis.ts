@@ -1,9 +1,20 @@
-import IORedis from 'ioredis';
+import IORedis, { Redis } from 'ioredis';
 
-export const redisPub = new IORedis({
+const redisConfig = {
   host: process.env.REDIS_HOST || 'localhost',
-  port: parseInt(process.env.REDIS_PORT || '6379'),
-});
+  port: parseInt(process.env.REDIS_PORT || '6379', 10),
+};
+
+export const redisPub = new IORedis(redisConfig);
 
 redisPub.on('connect', () => console.log('[REDIS] Publisher conectado'));
 redisPub.on('error', (e) => console.error('[REDIS] Erro:', e.message));
+
+export const redisCache = new Redis({
+  ...redisConfig,
+  maxRetriesPerRequest: 1,  
+  enableOfflineQueue: false,
+});
+
+redisCache.on('connect', () => console.log('[CACHE] Conectado ao Redis'));
+redisCache.on('error', (e) => console.error('[CACHE] Erro no Redis:', e.message));
