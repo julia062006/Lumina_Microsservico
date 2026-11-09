@@ -1,9 +1,9 @@
-import { Injectable, Logger, OnModuleDestroy } from '@nestjs/common';
+import { Injectable, Logger, OnModuleDestroy, OnModuleInit } from '@nestjs/common';
 import { ConfigService } from '@nestjs/config';
 import IORedis, { Redis } from 'ioredis';
 
 @Injectable()
-export class RedisService implements OnModuleDestroy {
+export class RedisService implements OnModuleInit, OnModuleDestroy {
   private readonly logger = new Logger(RedisService.name);
   private client: Redis;
   private pub: Redis;
@@ -17,8 +17,37 @@ export class RedisService implements OnModuleDestroy {
     this.pub = new IORedis({ host, port });
     this.sub = new IORedis({ host, port });
 
-    this.client.on('connect', () => this.logger.log(`Conectado ao Redis ${host}:${port}`));
-    this.client.on('error', (e) => this.logger.error(`Erro no Redis: ${e.message}`));
+    const clientes: Record<string, Redis> = {
+      client: this.client,
+      pub: this.pub,
+      sub: this.sub,
+    };
+
+    for (const [nome, conexao] of Object.entries(clientes)) {
+      conexao.on('connect', () =>
+        this.logger.log(`[REDIS] Cliente "${nome}" conectado em ${host}:${port}`),
+      );
+      conexao.on('error', (e) =>
+        this.logger.error(`[REDIS] Erro no cliente "${nome}": ${e.message}`),
+      );
+    }
+  }
+
+  async onModuleInit() {
+    try {
+      const resposta = await this.client.ping();
+      this.logger.log(`[REDIS] PING -> ${resposta}`);
+    } catch (error) {
+      const mensagem = error instanceof Error
+        ? error.message
+        : String(error);
+
+      this.logger.error(
+        `[REDIS] Falha ao executar PING: ${mensagem}`,
+      );
+
+      throw error;
+    }
   }
 
   async onModuleDestroy() {

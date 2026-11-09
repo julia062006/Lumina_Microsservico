@@ -17,7 +17,7 @@ export class EventsService implements OnModuleInit {
     async onModuleInit() {
         const sub = this.redis.getSubscriber();
         await sub.subscribe('livro.cadastrado');
-        this.logger.log('Inscrito em: livro.cadastrado');
+        this.logger.log('[PUBSUB] Inscrito em: livro.cadastrado');
 
         sub.on('message', async (channel, raw) => {
             this.logger.log(`[PUBSUB] Mensagem recebida em "${channel}": ${raw}`);
