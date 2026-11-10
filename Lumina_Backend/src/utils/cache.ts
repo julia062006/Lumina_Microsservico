@@ -6,11 +6,13 @@ export async function cacheAside<T>(
     ttlSegundos: number,
     buscar: () => Promise<T>,
 ): Promise<T> {
+    const inicio = Date.now();
+
     try {
         const cache = await redisCache.get(chave);
 
         if (cache) {
-            console.log(`[CACHE] HIT ${chave}`);
+            console.log(`[CACHE] HIT ${chave} (${Date.now() - inicio}ms)`);
             return JSON.parse(cache) as T;
         }
 
@@ -19,12 +21,15 @@ export async function cacheAside<T>(
         console.error(`[CACHE] Falha ao ler ${chave}: ${(err as Error).message}`);
     }
 
+    const inicioDb = Date.now();
     const dados = await buscar();
+    console.log(`[DB] Consulta executada em ${Date.now() - inicioDb}ms (${chave})`);
 
     if (dados !== null && dados !== undefined) {
         try {
             const ttlFinal = Number(process.env.CACHE_TTL_OVERRIDE) || ttlSegundos;
             await redisCache.set(chave, JSON.stringify(dados), "EX", ttlFinal);
+            console.log(`[CACHE] SET ${chave} (TTL=${ttlFinal}s)`);
         } catch (err) {
             console.error(`[CACHE] Falha ao gravar ${chave}: ${(err as Error).message}`);
         }

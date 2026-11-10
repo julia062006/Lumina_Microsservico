@@ -9,6 +9,7 @@ import { NotificacoesRepository } from './notifications.repository';
 @Injectable()
 export class NotificationsService {
   private readonly logger = new Logger(NotificationsService.name);
+  private readonly MAX_TENTATIVAS = 2;
 
   constructor(
     private readonly repo: NotificacoesRepository,
@@ -29,6 +30,33 @@ export class NotificationsService {
       this.logger.warn(`[HTTP] Não foi possível obter a capa "${arquivo}": ${(err as Error).message}`);
       return null;
     }
+  }
+
+  private async enviarComRetry(
+    destinatario: string,
+    titulo: string,
+    html: string,
+    anexos: { filename: string; content: Buffer; cid: string }[] | undefined,
+  ): Promise<{ ok: boolean; erro?: string }> {
+    let ultimoErro = '';
+
+    for (let tentativa = 1; tentativa <= this.MAX_TENTATIVAS; tentativa++) {
+      try {
+        await this.mail.enviar(destinatario, titulo, html, anexos);
+        return { ok: true };
+      } catch (err) {
+        ultimoErro = (err as Error).message;
+
+        if (tentativa < this.MAX_TENTATIVAS) {
+          this.logger.warn(
+            `[EMAIL] Falha ao enviar para ${destinatario} (tentativa ${tentativa}/${this.MAX_TENTATIVAS}): ${ultimoErro}. Tentando novamente...`,
+          );
+          await new Promise((r) => setTimeout(r, 2000 * tentativa));
+        }
+      }
+    }
+
+    return { ok: false, erro: ultimoErro };
   }
 
   async processarNovoLivro(livro: LivroCadastradoEvent): Promise<void> {
@@ -69,18 +97,30 @@ export class NotificationsService {
       ? [{ filename: livro.capa_imagem!, content: capa, cid: 'capa-livro' }]
       : undefined;
 
+    let enviados = 0;
+    let falhas = 0;
+
     for (const entrega of entregas) {
-      try {
-        await this.mail.enviar(entrega.destinatario, titulo, html, anexos);
+      const resultado = await this.enviarComRetry(entrega.destinatario, titulo, html, anexos);
+
+      if (resultado.ok) {
         await this.repo.marcarEnviada(entrega.id);
-      } catch (err) {
-        const mensagem = (err as Error).message;
-        this.logger.error(`[EMAIL] Falha ao enviar para ${entrega.destinatario}: ${mensagem}`);
-        await this.repo.marcarFalha(entrega.id, mensagem);
+        enviados++;
+      } else {
+        this.logger.error(
+          `[EMAIL] Falha definitiva para ${entrega.destinatario} após ${this.MAX_TENTATIVAS} tentativas: ${resultado.erro}`,
+        );
+        await this.repo.marcarFalha(entrega.id, resultado.erro ?? 'Erro desconhecido');
+        falhas++;
       }
     }
 
-    this.logger.log(`[EMAIL] Processo concluído para o livro "${livro.titulo}"`);
+    const resumo = `[EMAIL] Processo concluído para o livro "${livro.titulo}": ${enviados} enviados, ${falhas} falhas`;
+    if (falhas > 0) {
+      this.logger.warn(resumo);
+    } else {
+      this.logger.log(resumo);
+    }
   }
 
   private async getDestinatarios(): Promise<{ id: number; email: string }[]> {
