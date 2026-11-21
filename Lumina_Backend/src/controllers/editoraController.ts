@@ -1,5 +1,6 @@
 import { Request, Response } from "express";
 import Editora from "../models/Editora";
+import { invalidarPrefixo } from "../utils/cache";
 
 class EditoraController {
     static async findAll(req: Request, res: Response) {
@@ -64,7 +65,7 @@ class EditoraController {
                 nome,
                 descricao
             });
-
+            await invalidarPrefixo("livros:");
             return res.status(200).json({ mensagem: "Editora atualizada com sucesso" });
 
         } catch (erro) {
@@ -83,7 +84,7 @@ class EditoraController {
             }
 
             await editora.destroy();
-
+            await invalidarPrefixo("livros:");
             return res.status(200).json({ mensagem: "Editora removida com sucesso" });
 
         } catch (erro) {

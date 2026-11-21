@@ -1,28 +1,41 @@
 import { useForm } from "react-hook-form";
-import { useEffect } from "react";
+import { useEffect, useState } from "react";
 import { useNavigate } from "react-router-dom";
 
-import { atualizarUsuario } from "../services/api";
+import { atualizarUsuarioComFoto } from "../services/api";
 import { BotaoPrimario, BotaoSecundario } from "../componentes/Botao";
 import Input from "../componentes/Input";
 import Formulario from "../componentes/Formulario";
 import InputSenha from "../componentes/InputSenha";
+import InputFotoPerfil from "../componentes/InputFotoPerfil";
 import { useUsuario } from "../contexto/UsuarioContexto";
-import { mascaraCPF } from "../utilitarios/formatadores";
+import { mascaraCPF, urlFotoPerfil } from "../utilitarios/formatadores";
 import { validacoesNome, validacoesSenha, validacoesConfirmarSenha, validacoesCPF, MENSAGENS } from "../utilitarios/validacoes";
 import { alertaSucesso, alertaErro, tratarErrosResposta } from "../utilitarios/formulario";
 import fundo from "../imagens/planofundo2.png";
 
-function prepararDados(dados, email) {
-    const copia = { ...dados, email };
-    delete copia.confirmarSenha;
-    if (!copia.senha) delete copia.senha;
-    return copia;
+function prepararDados(dados, fotoPerfil) {
+    const formData = new FormData();
+
+    formData.append("nome", dados.nome);
+    formData.append("cpf", dados.cpf.replace(/\D/g, ""));
+
+    if (dados.senha) {
+        formData.append("senha", dados.senha);
+        formData.append("confirmarSenha", dados.confirmarSenha);
+    }
+
+    if (fotoPerfil) {
+        formData.append("foto_perfil", fotoPerfil);
+    }
+
+    return formData;
 }
 
 function EditarPerfil() {
     const { usuario, atualizarUsuarioContexto } = useUsuario();
     const navigate = useNavigate();
+    const [fotoPerfil, setFotoPerfil] = useState(null);
 
     const {
         register,
@@ -40,15 +53,16 @@ function EditarPerfil() {
             navigate("/entrar");
             return;
         }
+
         setValue("nome", usuario.nome);
         setValue("email", usuario.email);
         setValue("cpf", mascaraCPF(usuario.cpf));
-    }, [usuario]);
+    }, [usuario, navigate, setValue]);
 
     async function salvar(dados) {
         try {
-            const dadosAtualizados = prepararDados(dados, usuario.email);
-            const resposta = await atualizarUsuario(usuario.id, dadosAtualizados);
+            const dadosAtualizados = prepararDados(dados, fotoPerfil);
+            const resposta = await atualizarUsuarioComFoto(usuario.id_usuario, dadosAtualizados);
 
             if (!resposta.ok) {
                 tratarErrosResposta(resposta, setError);
@@ -75,7 +89,13 @@ function EditarPerfil() {
             backgroundRepeat: "no-repeat",
         }} className="min-h-screen">
             <div>
-                <Formulario titulo="Editar Perfil" onSubmit={handleSubmit(salvar)}>
+                <Formulario onSubmit={handleSubmit(salvar)}>
+
+                    <InputFotoPerfil
+                        fotoAtual={urlFotoPerfil(usuario.foto_perfil)}
+                        nome={usuario.nome}
+                        aoSelecionar={setFotoPerfil}
+                    />
 
                     <Input
                         label="Nome"

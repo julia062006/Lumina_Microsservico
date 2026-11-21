@@ -1,0 +1,135 @@
+name: Lumina CI/CD
+
+on:
+  push:
+    branches:
+      - main
+  pull_request:
+    branches:
+      - main
+
+jobs:
+  build:
+    name: Build backend e microsservico
+    runs-on: ubuntu-latest
+    steps:
+      - name: Obter codigo fonte
+        uses: actions/checkout@v4
+
+      - name: Configurar Node.js 20 com cache npm
+        uses: actions/setup-node@v4
+        with:
+          node-version: "20"
+          cache: npm
+          cache-dependency-path: |
+            Lumina_Backend/package-lock.json
+            Lumina_Microsservico/notificacoes/package-lock.json
+
+      - name: Instalar dependencias do backend
+        working-directory: Lumina_Backend
+        run: npm ci
+
+      - name: Compilar backend
+        working-directory: Lumina_Backend
+        run: npm run build
+
+      - name: Instalar dependencias das notificacoes
+        working-directory: Lumina_Microsservico/notificacoes
+        run: npm ci
+
+      - name: Compilar microsservico de notificacoes
+        working-directory: Lumina_Microsservico/notificacoes
+        run: npm run build
+
+  test:
+    name: Executar testes automatizados
+    needs: build
+    runs-on: ubuntu-latest
+    steps:
+      - name: Obter codigo fonte
+        uses: actions/checkout@v4
+
+      - name: Configurar Node.js 20 com cache npm
+        uses: actions/setup-node@v4
+        with:
+          node-version: "20"
+          cache: npm
+          cache-dependency-path: Lumina_Backend/package-lock.json
+
+      - name: Instalar dependencias do backend
+        working-directory: Lumina_Backend
+        run: npm ci
+
+      - name: Executar testes do backend
+        working-directory: Lumina_Backend
+        run: npm test --if-present
+
+      - name: Registrar estado da suite automatizada
+        run: echo "A suite de testes automatizados ainda nao foi implementada; esta etapa e um esqueleto."
+
+  docker:
+    name: Validar Compose e construir imagens
+    needs: test
+    runs-on: ubuntu-latest
+    steps:
+      - name: Obter codigo fonte
+        uses: actions/checkout@v4
+
+      - name: Criar arquivo .env temporario ficticio
+        run: |
+          if [ ! -f .env ]; then
+            cat > .env <<'EOF'
+          MYSQL_ROOT_PASSWORD=example_root_password
+          MYSQL_DATABASE=lumina
+          MYSQL_USER=lumina_user
+          MYSQL_PASSWORD=example_password
+          JWT_SECRET=example_jwt_secret
+          INTERNAL_API_KEY=example_internal_api_key
+          CACHE_TTL_OVERRIDE=
+          NOTIF_DB_ROOT_PASSWORD=example_notif_root_password
+          NOTIF_DB_NAME=lumina_notificacoes
+          FRONTEND_URL=https://lumina.local
+          SMTP_HOST=smtp.example.local
+          SMTP_PORT=587
+          SMTP_USER=user@example.local
+          SMTP_PASS=example_password
+          MAIL_FROM=Lumina <user@example.local>
+          EOF
+          fi
+
+      - name: Validar configuracao do Docker Compose
+        run: docker compose config
+
+      - name: Construir imagens do Docker Compose
+        run: docker compose build
+
+  deploy:
+    name: Simular atualizacao com rollback
+    needs: docker
+    if: github.event_name == 'push' && github.ref == 'refs/heads/main'
+    runs-on: ubuntu-latest
+    env:
+      SIMULAR_FALHA: ${{ vars.SIMULAR_FALHA || 'false' }}
+    steps:
+      - name: Registrar versao atualmente implantada
+        run: echo "Registrando a versao atualmente implantada."
+
+      - name: Preparar nova versao das imagens
+        run: echo "Preparando a nova versao das imagens."
+
+      - name: Simular atualizacao dos servicos
+        run: echo "Simulando a atualizacao dos servicos."
+
+      - name: Simular health check do backend
+        run: echo "Simulando o health check do backend."
+
+      - name: Confirmar sucesso da atualizacao
+        if: env.SIMULAR_FALHA == 'false'
+        run: echo "Health check OK; atualizacao concluida com sucesso."
+
+      - name: Demonstrar rollback e falhar
+        if: env.SIMULAR_FALHA == 'true'
+        run: |
+          echo "Health check falhou; iniciando rollback conceitual."
+          echo "Rollback concluido apenas na simulacao; nenhuma versao real foi restaurada."
+          exit 1

@@ -1,22 +1,37 @@
 import { useForm } from "react-hook-form";
+import { useState } from "react";
 import { criarUsuario } from "../services/api";
 import { BotaoPrimario, BotaoSecundario } from "../componentes/Botao";
 import Input from "../componentes/Input";
 import Formulario from "../componentes/Formulario";
 import { useNavigate } from "react-router-dom";
 import InputSenha from "../componentes/InputSenha";
+import InputFotoPerfil from "../componentes/InputFotoPerfil";
 import Swal from "sweetalert2";
-import { cpf } from "cpf-cnpj-validator";
+import { validacoesCPF } from "../utilitarios/validacoes";
+import { mascaraCPF } from "../utilitarios/formatadores";
 
 
 function CadastroUsuario() {
-    const { register, handleSubmit, watch, setError, formState: { errors }, reset } = useForm();
+    const { register, handleSubmit, setError, watch, formState: { errors }, reset } = useForm();
     const navigate = useNavigate();
-    const senha = watch("senha");
+    const [fotoPerfil, setFotoPerfil] = useState(null);
 
     async function cadastrar(dados) {
         try {
-            const resposta = await criarUsuario(dados);
+            const formData = new FormData();
+
+            formData.append("nome", dados.nome);
+            formData.append("cpf", dados.cpf.replace(/\D/g, ""));
+            formData.append("email", dados.email);
+            formData.append("senha", dados.senha);
+            formData.append("confirmarSenha", dados.confirmarSenha);
+
+            if (fotoPerfil) {
+                formData.append("foto_perfil", fotoPerfil);
+            }
+
+            const resposta = await criarUsuario(formData);
 
             if (!resposta.ok) {
 
@@ -43,27 +58,27 @@ function CadastroUsuario() {
             });
 
             reset();
+            setFotoPerfil(null);
             navigate("/entrar");
 
         } catch (erro) {
-            console.log("Erro ao conectar com o servidor");
+            console.error("Erro ao conectar com o servidor:", erro);
+            Swal.fire({
+                icon: "error",
+                title: "Erro ao realizar cadastro",
+                text: "Não foi possível conectar com o servidor."
+            });
         }
-    }
-
-    function mascaraCPF(valor) {
-        valor = valor.replace(/\D/g, "");
-        valor = valor.slice(0, 11);
-
-        valor = valor.replace(/(\d{3})(\d)/, "$1.$2");
-        valor = valor.replace(/(\d{3})(\d)/, "$1.$2");
-        valor = valor.replace(/(\d{3})(\d{1,2})$/, "$1-$2");
-
-        return valor;
     }
 
     return (
         <div className="bg-pink-50">
             <Formulario titulo="Faça seu Cadastro" onSubmit={handleSubmit(cadastrar)}>
+
+                <InputFotoPerfil
+                    nome={watch("nome")}
+                    aoSelecionar={setFotoPerfil}
+                />
 
                 <Input
                     label="Nome"
@@ -82,15 +97,7 @@ function CadastroUsuario() {
                     label="CPF"
                     name="cpf"
                     placeholder="Digite seu CPF"
-                    register={(name) =>
-                        register(name, {
-                            required: "O CPF é obrigatório",
-                            validate: (value) => {
-                                const cpfLimpo = value.replace(/\D/g, "");
-                                return cpf.isValid(cpfLimpo) || "CPF inválido";
-                            }
-                        })
-                    }
+                    register={(name) => register(name, validacoesCPF)}
                     onChange={(e) => {
                         e.target.value = mascaraCPF(e.target.value);
                     }}
@@ -128,8 +135,10 @@ function CadastroUsuario() {
                             },
                             validate: {
                                 temEspecial: (value) =>
-                                    /[^A-Za-z0-9]/.test(value) || "Deve ter pelo menos 1 caractere especial"
-                            }
+                                    /[^A-Za-z0-9]/.test(value) ||
+                                    "Deve ter pelo menos 1 caractere especial"
+                            },
+                            deps: ["confirmarSenha"]
                         })
                     }
                     error={errors.senha}
@@ -143,8 +152,9 @@ function CadastroUsuario() {
                     register={(name) =>
                         register(name, {
                             required: "Confirme sua senha",
-                            validate: (value) =>
-                                value === senha || "As senhas não são iguais!"
+                            validate: (value, formValues) =>
+                                value === formValues.senha ||
+                                "As senhas não são iguais!"
                         })
                     }
                     error={errors.confirmarSenha}
@@ -155,7 +165,7 @@ function CadastroUsuario() {
                         Cadastrar
                     </BotaoPrimario>
 
-                    <BotaoSecundario onClick={() => navigate("/entrar")}>
+                    <BotaoSecundario type="button" onClick={() => navigate("/entrar")}>
                         Já tenho uma conta
                     </BotaoSecundario>
 

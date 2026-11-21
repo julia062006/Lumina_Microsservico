@@ -5,7 +5,7 @@ import { criarLivro, getAutores, getCategorias, getEditoras, getColecoes } from 
 import { BotaoPrimario, BotaoSecundario } from "../../../componentes/Botao";
 import Input from "../../../componentes/Input";
 import Formulario from "../../../componentes/Formulario";
-import { validacoesTexto, validacoesNumero, validacoesSelect, MENSAGENS } from "../../../utilitarios/validacoes";
+import { validacoesTexto, validacoesSelect, MENSAGENS } from "../../../utilitarios/validacoes";
 import { criarFormData, alertaSucesso, alertaErro } from "../../../utilitarios/formulario";
 
 
@@ -43,7 +43,6 @@ function CadastrarLivro() {
             const formData = criarFormData({
                 titulo: dados.titulo,
                 descricao: dados.descricao,
-                preco: dados.preco.replace(/[R$\s.]/g, "").replace(",", "."),
                 id_autor: dados.id_autor,
                 id_categoria: dados.id_categoria,
                 id_editora: dados.id_editora,
@@ -89,15 +88,6 @@ function CadastrarLivro() {
                     placeholder="Digite a descrição"
                     register={(name) => register(name, validacoesTexto("A descrição é obrigatória"))}
                     error={errors.descricao}
-                />
-
-                <Input
-                    label="Preço"
-                    name="preco"
-                    type="text"
-                    placeholder="Digite o preço"
-                    register={(name) => register(name, validacoesNumero("O preço é obrigatório"))}
-                    error={errors.preco}
                 />
 
                 <div className="mt-4">
@@ -218,5 +208,5 @@ function CadastrarLivro() {
         </div>
     );
 }
-
+ 
 export default CadastrarLivro;

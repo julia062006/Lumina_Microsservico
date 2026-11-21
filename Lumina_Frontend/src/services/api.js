@@ -16,17 +16,29 @@ async function tratarResposta(resposta) {
     };
 }
 
+
 function getHeaders() {
     const token = localStorage.getItem("token");
-    return {
-        "Content-Type": "application/json",
-        Authorization: "Bearer " + token
+    const headers = {
+        "Content-Type": "application/json"
     };
+
+    if (token) {
+        headers.Authorization = "Bearer " + token;
+    }
+
+    return headers;
 }
 
 function getHeadersFormData() {
     const token = localStorage.getItem("token");
-    return { Authorization: "Bearer " + token };
+    const headers = {};
+
+    if (token) {
+        headers.Authorization = "Bearer " + token;
+    }
+
+    return headers;
 }
 
 export async function getUsuarios() {
@@ -37,8 +49,8 @@ export async function getUsuarios() {
 export async function criarUsuario(dados) {
     const resposta = await fetch(API + "/usuarios", {
         method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify(dados)
+        headers: getHeadersFormData(),
+        body: dados
     });
 
     return tratarResposta(resposta);
@@ -54,11 +66,11 @@ export async function loginUsuario(dados) {
     return tratarResposta(resposta);
 }
 
-export async function atualizarUsuario(id, dados) {
+export async function atualizarUsuarioComFoto(id, dados) {
     const resposta = await fetch(API + "/usuarios/" + id, {
         method: "PUT",
-        headers: getHeaders(),
-        body: JSON.stringify(dados)
+        headers: getHeadersFormData(),
+        body: dados
     });
 
     return tratarResposta(resposta);

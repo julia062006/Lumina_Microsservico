@@ -4,6 +4,8 @@ import { validationResult } from "express-validator";
 import { WhereOptions } from "sequelize";
 import path from "node:path";
 import fs from "fs";
+import { redisPub } from "../config/redis";
+import { cacheAside, invalidarPrefixo } from "../utils/cache";
 
 class LivroController {
 
@@ -21,16 +23,19 @@ class LivroController {
                 where.id_colecao = Number(colecao);
             }
 
-            const livro = await Livro.findAll({
-                where,
-                order: [["id_livro", "DESC"]],
-                include: [
-                    { association: "autor" },
-                    { association: "categoria" },
-                    { association: "editora" },
-                    { association: "colecao" }
-                ]
-            });
+            const chave = `livros:lista:categoria=${categoria ?? ""}:colecao=${colecao ?? ""}`;
+            const livro = await cacheAside(chave, 300, () =>
+                Livro.findAll({
+                    where,
+                    order: [["id_livro", "DESC"]],
+                    include: [
+                        { association: "autor" },
+                        { association: "categoria" },
+                        { association: "editora" },
+                        { association: "colecao" }
+                    ]
+                })
+            );
 
             return res.send(livro);
 
@@ -42,14 +47,16 @@ class LivroController {
     static async getById(req: Request, res: Response) {
         try {
             const { id } = req.params;
-            const livro = await Livro.findByPk(Number(id), {
-                include: [
-                    { association: "autor" },
-                    { association: "categoria" },
-                    { association: "editora" },
-                    { association: "colecao" }
-                ]
-            });
+            const livro = await cacheAside(`livros:id:${id}`, 600, () =>
+                Livro.findByPk(Number(id), {
+                    include: [
+                        { association: "autor" },
+                        { association: "categoria" },
+                        { association: "editora" },
+                        { association: "colecao" }
+                    ]
+                })
+            );
             if (!livro) {
                 return res.status(404).json({ mensagem: "Livro não encontrado" });
             }
@@ -91,6 +98,30 @@ class LivroController {
                 destaque: destaque === "true",
             });
 
+            await invalidarPrefixo("livros:");
+
+            try {
+                const completo = await Livro.findByPk(livro.id_livro, {
+                    include: [
+                        { association: "autor" },
+                        { association: "editora" },
+                    ],
+                });
+                const dados: any = completo?.toJSON();
+
+                await redisPub.publish("livro.cadastrado", JSON.stringify({
+                    id_livro: dados.id_livro,
+                    titulo: dados.titulo,
+                    descricao: dados.descricao,
+                    capa_imagem: dados.capa_imagem,
+                    autor: dados.autor?.nome,
+                    editora: dados.editora?.nome,
+                }));
+                console.log(`[REDIS] Evento livro.cadastrado publicado (id_livro=${dados.id_livro})`);
+            } catch (err) {
+                console.error("[REDIS] Falha ao publicar livro.cadastrado:", err);
+            }
+
             return res.status(201).json(livro);
 
         } catch (erro) {
@@ -129,6 +160,8 @@ class LivroController {
                 destaque: destaque === "true"
             });
 
+            await invalidarPrefixo("livros:");
+
             return res.status(200).json({ mensagem: "Livro atualizado com sucesso" });
 
         } catch (erro) {
@@ -146,6 +179,7 @@ class LivroController {
             }
 
             await livro.destroy();
+            await invalidarPrefixo("livros:");
             return res.status(200).json({ mensagem: "Livro removido com sucesso" });
 
         } catch (erro) {
@@ -155,7 +189,7 @@ class LivroController {
 
     static async getDestaques(req: Request, res: Response) {
         try {
-            const livros = await Livro.findAll({
+            const livros = await cacheAside("livros:destaques", 300, () => Livro.findAll({
                 where: { destaque: true },
                 include: [
                     { association: "autor" },
@@ -163,7 +197,8 @@ class LivroController {
                     { association: "editora" },
                     { association: "colecao" }
                 ]
-            });
+            })
+            )
 
             return res.status(200).json(livros);
 

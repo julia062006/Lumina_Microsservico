@@ -1,13 +1,14 @@
 import { Request, Response } from "express";
 import Categoria from "../models/Categoria";
 import { validationResult } from "express-validator";
+import { cacheAside, invalidarPrefixo } from "../utils/cache";
 
 class CategoriaController {
   static async findAll(req: Request, res: Response) {
     try {
-      const categoria = await Categoria.findAll({
-        order: [["id_categoria", "DESC"]]
-      });
+      const categoria = await cacheAside("categorias:lista", 600, () =>
+        Categoria.findAll({ order: [["id_categoria", "DESC"]] })
+      );
       return res.send(categoria);
     } catch (erro) {
       return res.status(500).json({ mensagem: "Erro interno do servidor" });
@@ -16,9 +17,9 @@ class CategoriaController {
 
   static async findDestaque(req: Request, res: Response) {
     try {
-      const categorias = await Categoria.findAll({
-        where: { destaque: 1 },
-      });
+      const categorias = await cacheAside("categorias:destaques", 600, () =>
+        Categoria.findAll({ where: { destaque: 1 } })
+      );
       return res.status(200).json(categorias);
     } catch (erro) {
       return res.status(500).json({ mensagem: "Erro interno do servidor" });
@@ -28,7 +29,9 @@ class CategoriaController {
   static async getById(req: Request, res: Response) {
     try {
       const { id } = req.params;
-      const categoria = await Categoria.findByPk(Number(id));
+      const categoria = await cacheAside(`categorias:id:${id}`, 600, () =>
+        Categoria.findByPk(Number(id))
+      );
       if (!categoria) {
         return res.status(404).json({ mensagem: "Categoria não encontrada" });
       }
@@ -58,6 +61,7 @@ class CategoriaController {
         descricao: descricao,
         destaque: destaque ?? false
       });
+      await invalidarPrefixo("categorias:");
       return res.status(201).json(categoria);
     } catch (erro) {
       return res.status(500).json({ mensagem: "Erro interno do servidor" });
@@ -83,6 +87,8 @@ class CategoriaController {
         descricao,
         destaque
       });
+      await invalidarPrefixo("categorias:");
+      await invalidarPrefixo("livros:");
       return res
         .status(200)
         .json({ mensagem: "Categoria atualizada com sucesso" });
@@ -101,6 +107,8 @@ class CategoriaController {
       }
 
       await categoria.destroy();
+      await invalidarPrefixo("categorias:");
+      await invalidarPrefixo("livros:");
       return res
         .status(200)
         .json({ mensagem: "Categoria removida com sucesso" });
