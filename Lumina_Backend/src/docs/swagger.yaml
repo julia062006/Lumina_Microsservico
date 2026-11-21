@@ -1,0 +1,1609 @@
+openapi: 3.0.3
+info:
+  title: API Lumina
+  version: 1.0.0
+  description: >-
+    API REST para livros, autores, categorias, editoras, coleções e usuários
+    do sistema Lumina. A aplicação Express escuta na porta 3000 e o Nginx
+    publica as rotas do backend sob /api.
+servers:
+  - url: https://lumina.local/api
+    description: Backend publicado pelo Nginx local
+tags:
+  - name: Autenticação
+    description: Login, cadastro e recursos internos de autenticação
+  - name: Livros
+    description: Consulta e gerenciamento de livros
+  - name: Autores
+    description: Consulta e gerenciamento de autores
+  - name: Categorias
+    description: Consulta e gerenciamento de categorias
+  - name: Editoras
+    description: Consulta e gerenciamento de editoras
+  - name: Coleções
+    description: Consulta e gerenciamento de coleções
+  - name: Usuários
+    description: Cadastro, perfil e gerenciamento de usuários
+paths:
+  /entrar:
+    post:
+      tags: [Autenticação]
+      summary: Autentica um usuário
+      description: Retorna um JWT sem prazo de expiração definido na implementação atual.
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/LoginRequest'
+            example:
+              email: pessoa@exemplo.com
+              senha: Senha@123
+      responses:
+        '200':
+          description: Login realizado
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/LoginResponse'
+              example:
+                mensagem: Login realizado com sucesso
+                token: eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9...
+                usuario:
+                  id: 12
+                  nome: Pessoa Exemplo
+                  email: pessoa@exemplo.com
+                  cpf: '12345678909'
+                  role: user
+                  foto_perfil: null
+        '400':
+          $ref: '#/components/responses/BadRequest'
+        '401':
+          $ref: '#/components/responses/Unauthorized'
+        '500':
+          $ref: '#/components/responses/InternalServerError'
+
+  /internal/destinatarios:
+    servers:
+      - url: http://localhost:3000
+        description: Backend direto na porta publicada pelo Docker; não passa pelo Nginx
+    get:
+      tags: [Autenticação, Usuários]
+      summary: Lista os destinatários internos de notificações
+      description: >-
+        Rota protegida pela chave INTERNAL_API_KEY no header x-api-key, não por JWT.
+        O Nginx configura /api/internal/ para responder 404, portanto esta rota
+        não é acessível pelo servidor público global; use o endereço direto do
+        backend em ambiente local autorizado.
+      security:
+        - internalApiKey: []
+      responses:
+        '200':
+          description: Usuários com email disponíveis para notificações
+          content:
+            application/json:
+              schema:
+                type: array
+                items:
+                  $ref: '#/components/schemas/Destinatario'
+              example:
+                - id_usuario: 12
+                  email: pessoa@exemplo.com
+        '401':
+          description: Chave interna ausente ou inválida
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorMessage'
+              example:
+                mensagem: Chave interna inválida
+        '500':
+          $ref: '#/components/responses/InternalServerError'
+
+  /usuarios:
+    get:
+      tags: [Usuários]
+      summary: Lista usuários
+      description: Requer autenticação e perfil admin.
+      security:
+        - bearerAuth: []
+      responses:
+        '200':
+          description: Lista de usuários com associação de role
+          content:
+            application/json:
+              schema:
+                type: array
+                items:
+                  $ref: '#/components/schemas/UsuarioAdmin'
+        '401':
+          $ref: '#/components/responses/Unauthorized'
+        '403':
+          $ref: '#/components/responses/Forbidden'
+        '500':
+          $ref: '#/components/responses/InternalServerError'
+    post:
+      tags: [Usuários]
+      summary: Cadastra um usuário
+      description: >-
+        A senha deve ter ao menos 6 caracteres, uma letra maiúscula e um caractere
+        especial. confirmarSenha deve ser igual a senha. A role user é atribuída
+        pelo backend. foto_perfil é opcional.
+      requestBody:
+        required: true
+        content:
+          multipart/form-data:
+            schema:
+              $ref: '#/components/schemas/UsuarioCreateRequest'
+            example:
+              nome: Pessoa Exemplo
+              email: pessoa@exemplo.com
+              senha: Senha@123
+              confirmarSenha: Senha@123
+              cpf: '123.456.789-09'
+      responses:
+        '201':
+          description: Usuário cadastrado
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/UsuarioCreateResponse'
+              example:
+                id: 12
+                nome: Pessoa Exemplo
+                email: pessoa@exemplo.com
+                cpf: '12345678909'
+                role: user
+                foto_perfil: null
+        '400':
+          $ref: '#/components/responses/BadRequest'
+        '500':
+          description: Cadastro não realizado; a implementação também retorna o campo erro.
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorWithDetails'
+
+  /usuarios/{id}:
+    parameters:
+      - $ref: '#/components/parameters/UsuarioId'
+    get:
+      tags: [Usuários]
+      summary: Consulta um usuário por ID
+      description: Requer autenticação e perfil admin.
+      security:
+        - bearerAuth: []
+      responses:
+        '200':
+          description: Usuário encontrado com associação de role
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/UsuarioAdmin'
+        '401':
+          $ref: '#/components/responses/Unauthorized'
+        '403':
+          $ref: '#/components/responses/Forbidden'
+        '404':
+          $ref: '#/components/responses/NotFound'
+        '500':
+          $ref: '#/components/responses/InternalServerError'
+    put:
+      tags: [Usuários]
+      summary: Atualiza o próprio perfil
+      description: >-
+        Requer JWT do próprio usuário identificado pelo id da URL. Mesmo um
+        administrador não pode atualizar o perfil de outra pessoa por esta rota.
+        Todos os campos são opcionais, mas pelo menos um dado ou foto deve ser enviado.
+      security:
+        - bearerAuth: []
+      requestBody:
+        required: true
+        content:
+          multipart/form-data:
+            schema:
+              $ref: '#/components/schemas/UsuarioUpdateRequest'
+      responses:
+        '200':
+          description: Perfil atualizado
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/UsuarioUpdateResponse'
+        '400':
+          $ref: '#/components/responses/BadRequest'
+        '401':
+          $ref: '#/components/responses/Unauthorized'
+        '403':
+          $ref: '#/components/responses/Forbidden'
+        '404':
+          $ref: '#/components/responses/NotFound'
+        '500':
+          $ref: '#/components/responses/InternalServerError'
+    delete:
+      tags: [Usuários]
+      summary: Remove um usuário
+      description: Requer JWT; o próprio usuário ou um administrador pode remover a conta.
+      security:
+        - bearerAuth: []
+      responses:
+        '200':
+          description: Usuário removido
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/MessageResponse'
+              example:
+                mensagem: Usuário removido com sucesso
+        '401':
+          $ref: '#/components/responses/Unauthorized'
+        '403':
+          $ref: '#/components/responses/Forbidden'
+        '404':
+          $ref: '#/components/responses/NotFound'
+        '500':
+          $ref: '#/components/responses/InternalServerError'
+
+  /perfil:
+    get:
+      tags: [Usuários]
+      summary: Consulta o perfil do usuário autenticado
+      security:
+        - bearerAuth: []
+      responses:
+        '200':
+          description: Perfil do usuário
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/UsuarioProfile'
+        '401':
+          $ref: '#/components/responses/Unauthorized'
+        '403':
+          $ref: '#/components/responses/Forbidden'
+        '404':
+          $ref: '#/components/responses/NotFound'
+        '500':
+          $ref: '#/components/responses/InternalServerError'
+
+  /livros:
+    get:
+      tags: [Livros]
+      summary: Lista livros
+      parameters:
+        - name: categoria
+          in: query
+          required: false
+          description: Filtra pelo valor numérico de id_categoria.
+          schema:
+            type: integer
+          example: 3
+        - name: colecao
+          in: query
+          required: false
+          description: Filtra pelo valor numérico de id_colecao.
+          schema:
+            type: integer
+          example: 2
+      responses:
+        '200':
+          description: Livros ordenados por id_livro decrescente, com associações
+          content:
+            application/json:
+              schema:
+                type: array
+                items:
+                  $ref: '#/components/schemas/LivroComAssociacoes'
+        '500':
+          $ref: '#/components/responses/InternalServerError'
+    post:
+      tags: [Livros]
+      summary: Cadastra um livro
+      description: >-
+        Requer JWT e perfil admin. O envio é multipart/form-data; capa_imagem e
+        arquivo_pdf são obrigatórios. capa_imagem aceita JPEG, JPG, PNG ou WEBP;
+        arquivo_pdf aceita apenas PDF. Cada arquivo pode ter até 10 MiB.
+        destaque é interpretado como true somente quando enviado como a string
+        "true"; outros valores resultam em false. id_colecao vazio ou ausente é
+        gravado como null.
+
+        Após a criação, o backend publica o evento Redis Pub/Sub
+        livro.cadastrado. O microsserviço de notificações o consome de forma
+        assíncrona e processa o envio de email. Não há chamada HTTP direta do
+        endpoint para o microsserviço; uma falha ao publicar o evento é registrada
+        e não desfaz a criação do livro.
+      security:
+        - bearerAuth: []
+      requestBody:
+        required: true
+        content:
+          multipart/form-data:
+            schema:
+              $ref: '#/components/schemas/LivroCreateRequest'
+            encoding:
+              capa_imagem:
+                contentType: image/jpeg, image/png, image/webp
+              arquivo_pdf:
+                contentType: application/pdf
+            example:
+              id_autor: '4'
+              titulo: O caminho das estrelas
+              descricao: Uma história de exemplo.
+              id_categoria: '3'
+              id_editora: '2'
+              id_colecao: '1'
+              destaque: 'true'
+              capa_imagem: capa.jpg
+              arquivo_pdf: livro.pdf
+      responses:
+        '201':
+          description: Livro cadastrado
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Livro'
+              example:
+                id_livro: 25
+                id_autor: 4
+                titulo: O caminho das estrelas
+                descricao: Uma história de exemplo.
+                capa_imagem: '1775920935911.jpg'
+                arquivo_pdf: '1775920935912.pdf'
+                id_categoria: 3
+                id_editora: 2
+                id_colecao: 1
+                destaque: true
+        '400':
+          $ref: '#/components/responses/BadRequest'
+        '401':
+          $ref: '#/components/responses/Unauthorized'
+        '403':
+          $ref: '#/components/responses/Forbidden'
+        '500':
+          $ref: '#/components/responses/InternalServerError'
+
+  /livros/destaque:
+    get:
+      tags: [Livros]
+      summary: Lista livros em destaque
+      responses:
+        '200':
+          description: Livros com destaque igual a true e suas associações
+          content:
+            application/json:
+              schema:
+                type: array
+                items:
+                  $ref: '#/components/schemas/LivroComAssociacoes'
+        '500':
+          $ref: '#/components/responses/InternalServerError'
+
+  /livros/{id}:
+    parameters:
+      - $ref: '#/components/parameters/LivroId'
+    get:
+      tags: [Livros]
+      summary: Consulta um livro
+      responses:
+        '200':
+          description: Livro com autor, categoria, editora e coleção
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/LivroComAssociacoes'
+        '404':
+          $ref: '#/components/responses/NotFound'
+        '500':
+          $ref: '#/components/responses/InternalServerError'
+    put:
+      tags: [Livros]
+      summary: Atualiza um livro
+      description: >-
+        Requer JWT e perfil admin. Os arquivos são opcionais e, se enviados,
+        substituem os nomes armazenados. Campos de texto não enviados são
+        preservados pelo Sequelize; destaque não enviado é convertido para false.
+        id_colecao não enviado ou vazio é convertido para null.
+      security:
+        - bearerAuth: []
+      requestBody:
+        required: true
+        content:
+          multipart/form-data:
+            schema:
+              $ref: '#/components/schemas/LivroUpdateRequest'
+            encoding:
+              capa_imagem:
+                contentType: image/jpeg, image/png, image/webp
+              arquivo_pdf:
+                contentType: application/pdf
+      responses:
+        '200':
+          description: Livro atualizado
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/MessageResponse'
+              example:
+                mensagem: Livro atualizado com sucesso
+        '401':
+          $ref: '#/components/responses/Unauthorized'
+        '403':
+          $ref: '#/components/responses/Forbidden'
+        '404':
+          $ref: '#/components/responses/NotFound'
+        '400':
+          $ref: '#/components/responses/BadRequest'
+        '500':
+          $ref: '#/components/responses/InternalServerError'
+    delete:
+      tags: [Livros]
+      summary: Remove um livro
+      description: Requer JWT e perfil admin.
+      security:
+        - bearerAuth: []
+      responses:
+        '200':
+          description: Livro removido
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/MessageResponse'
+              example:
+                mensagem: Livro removido com sucesso
+        '401':
+          $ref: '#/components/responses/Unauthorized'
+        '403':
+          $ref: '#/components/responses/Forbidden'
+        '404':
+          $ref: '#/components/responses/NotFound'
+        '500':
+          $ref: '#/components/responses/InternalServerError'
+
+  /livros/{id}/pdf:
+    get:
+      tags: [Livros]
+      summary: Abre o PDF de um livro
+      description: Requer JWT. Retorna o arquivo PDF armazenado para o livro.
+      security:
+        - bearerAuth: []
+      parameters:
+        - $ref: '#/components/parameters/LivroId'
+      responses:
+        '200':
+          description: Arquivo PDF
+          content:
+            application/pdf:
+              schema:
+                type: string
+                format: binary
+        '401':
+          $ref: '#/components/responses/Unauthorized'
+        '403':
+          description: Token JWT inválido
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/LegacyError'
+        '404':
+          description: Livro ou arquivo PDF não encontrado
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/LegacyError'
+              examples:
+                livro:
+                  value:
+                    erro: Livro não encontrado
+                arquivo:
+                  value:
+                    erro: Arquivo não encontrado
+        '500':
+          description: Falha ao abrir o PDF
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/LegacyError'
+              example:
+                erro: Erro ao abrir PDF
+
+  /autores:
+    get:
+      tags: [Autores]
+      summary: Lista autores
+      responses:
+        '200':
+          description: Lista ordenada por id_autor decrescente
+          content:
+            application/json:
+              schema:
+                type: array
+                items:
+                  $ref: '#/components/schemas/Autor'
+        '500':
+          $ref: '#/components/responses/InternalServerError'
+    post:
+      tags: [Autores]
+      summary: Cadastra um autor
+      description: >-
+        Requer JWT e perfil admin. O controller aceita a foto como opcional,
+        mas o model exige foto não nula; sem o arquivo, a gravação pode falhar
+        com erro interno.
+      security:
+        - bearerAuth: []
+      requestBody:
+        required: true
+        content:
+          multipart/form-data:
+            schema:
+              $ref: '#/components/schemas/AutorCreateRequest'
+            encoding:
+              foto:
+                contentType: image/jpeg, image/jpg, image/png, image/webp
+            example:
+              nome: Autora Exemplo
+              biografia: Biografia de exemplo.
+              foto: autora.jpg
+      responses:
+        '201':
+          description: Autor cadastrado
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Autor'
+        '400':
+          $ref: '#/components/responses/BadRequest'
+        '401':
+          $ref: '#/components/responses/Unauthorized'
+        '403':
+          $ref: '#/components/responses/Forbidden'
+        '500':
+          $ref: '#/components/responses/InternalServerError'
+
+  /autores/{id}:
+    parameters:
+      - $ref: '#/components/parameters/AutorId'
+    get:
+      tags: [Autores]
+      summary: Consulta um autor
+      responses:
+        '200':
+          description: Autor encontrado
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Autor'
+        '404':
+          $ref: '#/components/responses/NotFound'
+        '500':
+          $ref: '#/components/responses/InternalServerError'
+    put:
+      tags: [Autores]
+      summary: Atualiza um autor
+      description: Requer JWT e perfil admin. A foto enviada substitui a atual.
+      security:
+        - bearerAuth: []
+      requestBody:
+        required: true
+        content:
+          multipart/form-data:
+            schema:
+              $ref: '#/components/schemas/AutorUpdateRequest'
+            encoding:
+              foto:
+                contentType: image/jpeg, image/jpg, image/png, image/webp
+      responses:
+        '200':
+          description: Autor atualizado
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/MessageResponse'
+              example:
+                mensagem: Autor atualizado com sucesso
+        '401':
+          $ref: '#/components/responses/Unauthorized'
+        '403':
+          $ref: '#/components/responses/Forbidden'
+        '404':
+          $ref: '#/components/responses/NotFound'
+        '500':
+          $ref: '#/components/responses/InternalServerError'
+    delete:
+      tags: [Autores]
+      summary: Remove um autor
+      description: Requer JWT e perfil admin.
+      security:
+        - bearerAuth: []
+      responses:
+        '200':
+          description: Autor removido
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/MessageResponse'
+              example:
+                mensagem: Autor removido com sucesso
+        '401':
+          $ref: '#/components/responses/Unauthorized'
+        '403':
+          $ref: '#/components/responses/Forbidden'
+        '404':
+          $ref: '#/components/responses/NotFound'
+        '500':
+          $ref: '#/components/responses/InternalServerError'
+
+  /autores/{id}/livros:
+    get:
+      tags: [Autores, Livros]
+      summary: Lista livros de um autor
+      parameters:
+        - $ref: '#/components/parameters/AutorId'
+      responses:
+        '200':
+          description: Livros associados ao autor, com autor e categoria
+          content:
+            application/json:
+              schema:
+                type: array
+                items:
+                  $ref: '#/components/schemas/LivroAutorCategoria'
+        '500':
+          $ref: '#/components/responses/InternalServerError'
+
+  /categorias:
+    get:
+      tags: [Categorias]
+      summary: Lista categorias
+      responses:
+        '200':
+          description: Lista ordenada por id_categoria decrescente
+          content:
+            application/json:
+              schema:
+                type: array
+                items:
+                  $ref: '#/components/schemas/Categoria'
+        '500':
+          $ref: '#/components/responses/InternalServerError'
+    post:
+      tags: [Categorias]
+      summary: Cadastra uma categoria
+      description: Requer JWT e perfil admin. nome e descricao são obrigatórios.
+      security:
+        - bearerAuth: []
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/CategoriaCreateRequest'
+            example:
+              nome: Ficção
+              descricao: Livros de ficção.
+              destaque: false
+      responses:
+        '201':
+          description: Categoria cadastrada
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Categoria'
+        '400':
+          $ref: '#/components/responses/BadRequest'
+        '401':
+          $ref: '#/components/responses/Unauthorized'
+        '403':
+          $ref: '#/components/responses/Forbidden'
+        '500':
+          $ref: '#/components/responses/InternalServerError'
+
+  /categorias/destaque:
+    get:
+      tags: [Categorias]
+      summary: Lista categorias em destaque
+      responses:
+        '200':
+          description: Categorias cujo campo destaque está ativo
+          content:
+            application/json:
+              schema:
+                type: array
+                items:
+                  $ref: '#/components/schemas/Categoria'
+        '500':
+          $ref: '#/components/responses/InternalServerError'
+
+  /categorias/{id}:
+    parameters:
+      - $ref: '#/components/parameters/CategoriaId'
+    get:
+      tags: [Categorias]
+      summary: Consulta uma categoria
+      responses:
+        '200':
+          description: Categoria encontrada
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Categoria'
+        '404':
+          $ref: '#/components/responses/NotFound'
+        '500':
+          $ref: '#/components/responses/InternalServerError'
+    put:
+      tags: [Categorias]
+      summary: Atualiza uma categoria
+      description: Requer JWT e perfil admin.
+      security:
+        - bearerAuth: []
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/CategoriaUpdateRequest'
+      responses:
+        '200':
+          description: Categoria atualizada
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/MessageResponse'
+              example:
+                mensagem: Categoria atualizada com sucesso
+        '401':
+          $ref: '#/components/responses/Unauthorized'
+        '403':
+          $ref: '#/components/responses/Forbidden'
+        '404':
+          $ref: '#/components/responses/NotFound'
+        '500':
+          $ref: '#/components/responses/InternalServerError'
+    delete:
+      tags: [Categorias]
+      summary: Remove uma categoria
+      description: Requer JWT e perfil admin.
+      security:
+        - bearerAuth: []
+      responses:
+        '200':
+          description: Categoria removida
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/MessageResponse'
+              example:
+                mensagem: Categoria removida com sucesso
+        '401':
+          $ref: '#/components/responses/Unauthorized'
+        '403':
+          $ref: '#/components/responses/Forbidden'
+        '404':
+          $ref: '#/components/responses/NotFound'
+        '500':
+          $ref: '#/components/responses/InternalServerError'
+
+  /editoras:
+    get:
+      tags: [Editoras]
+      summary: Lista editoras
+      responses:
+        '200':
+          description: Lista ordenada por id_editora decrescente
+          content:
+            application/json:
+              schema:
+                type: array
+                items:
+                  $ref: '#/components/schemas/Editora'
+        '500':
+          $ref: '#/components/responses/InternalServerError'
+    post:
+      tags: [Editoras]
+      summary: Cadastra uma editora
+      description: Requer JWT e perfil admin.
+      security:
+        - bearerAuth: []
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/EditoraWriteRequest'
+            example:
+              nome: Editora Exemplo
+              descricao: Descrição da editora.
+      responses:
+        '201':
+          description: Editora cadastrada
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Editora'
+        '401':
+          $ref: '#/components/responses/Unauthorized'
+        '403':
+          $ref: '#/components/responses/Forbidden'
+        '500':
+          $ref: '#/components/responses/InternalServerError'
+
+  /editoras/{id}:
+    parameters:
+      - $ref: '#/components/parameters/EditoraId'
+    get:
+      tags: [Editoras]
+      summary: Consulta uma editora
+      responses:
+        '200':
+          description: Editora encontrada
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Editora'
+        '404':
+          $ref: '#/components/responses/NotFound'
+        '500':
+          $ref: '#/components/responses/InternalServerError'
+    put:
+      tags: [Editoras]
+      summary: Atualiza uma editora
+      description: Requer JWT e perfil admin.
+      security:
+        - bearerAuth: []
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/EditoraUpdateRequest'
+      responses:
+        '200':
+          description: Editora atualizada
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/MessageResponse'
+              example:
+                mensagem: Editora atualizada com sucesso
+        '401':
+          $ref: '#/components/responses/Unauthorized'
+        '403':
+          $ref: '#/components/responses/Forbidden'
+        '404':
+          $ref: '#/components/responses/NotFound'
+        '500':
+          $ref: '#/components/responses/InternalServerError'
+    delete:
+      tags: [Editoras]
+      summary: Remove uma editora
+      description: Requer JWT e perfil admin.
+      security:
+        - bearerAuth: []
+      responses:
+        '200':
+          description: Editora removida
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/MessageResponse'
+              example:
+                mensagem: Editora removida com sucesso
+        '401':
+          $ref: '#/components/responses/Unauthorized'
+        '403':
+          $ref: '#/components/responses/Forbidden'
+        '404':
+          $ref: '#/components/responses/NotFound'
+        '500':
+          $ref: '#/components/responses/InternalServerError'
+
+  /colecoes:
+    get:
+      tags: [Coleções]
+      summary: Lista coleções
+      responses:
+        '200':
+          description: Lista ordenada por id_colecao decrescente
+          content:
+            application/json:
+              schema:
+                type: array
+                items:
+                  $ref: '#/components/schemas/Colecao'
+        '500':
+          $ref: '#/components/responses/InternalServerError'
+    post:
+      tags: [Coleções]
+      summary: Cadastra uma coleção
+      description: Requer JWT e perfil admin.
+      security:
+        - bearerAuth: []
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/ColecaoWriteRequest'
+            example:
+              nome: Coleção Exemplo
+              descricao: Descrição da coleção.
+      responses:
+        '201':
+          description: Coleção cadastrada
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Colecao'
+        '401':
+          $ref: '#/components/responses/Unauthorized'
+        '403':
+          $ref: '#/components/responses/Forbidden'
+        '500':
+          $ref: '#/components/responses/InternalServerError'
+
+  /colecoes/{id}:
+    parameters:
+      - $ref: '#/components/parameters/ColecaoId'
+    get:
+      tags: [Coleções]
+      summary: Consulta uma coleção
+      responses:
+        '200':
+          description: Coleção encontrada
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Colecao'
+        '404':
+          $ref: '#/components/responses/NotFound'
+        '500':
+          $ref: '#/components/responses/InternalServerError'
+    put:
+      tags: [Coleções]
+      summary: Atualiza uma coleção
+      description: Requer JWT e perfil admin.
+      security:
+        - bearerAuth: []
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/ColecaoUpdateRequest'
+      responses:
+        '200':
+          description: Coleção atualizada
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/MessageResponse'
+              example:
+                mensagem: Coleção atualizada com sucesso
+        '401':
+          $ref: '#/components/responses/Unauthorized'
+        '403':
+          $ref: '#/components/responses/Forbidden'
+        '404':
+          $ref: '#/components/responses/NotFound'
+        '500':
+          $ref: '#/components/responses/InternalServerError'
+    delete:
+      tags: [Coleções]
+      summary: Remove uma coleção
+      description: Requer JWT e perfil admin.
+      security:
+        - bearerAuth: []
+      responses:
+        '200':
+          description: Coleção removida
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/MessageResponse'
+              example:
+                mensagem: Coleção removida com sucesso
+        '401':
+          $ref: '#/components/responses/Unauthorized'
+        '403':
+          $ref: '#/components/responses/Forbidden'
+        '404':
+          $ref: '#/components/responses/NotFound'
+        '500':
+          $ref: '#/components/responses/InternalServerError'
+
+components:
+  securitySchemes:
+    bearerAuth:
+      type: http
+      scheme: bearer
+      bearerFormat: JWT
+    internalApiKey:
+      type: apiKey
+      in: header
+      name: x-api-key
+  parameters:
+    UsuarioId:
+      name: id
+      in: path
+      required: true
+      description: id_usuario numérico
+      schema:
+        type: integer
+    LivroId:
+      name: id
+      in: path
+      required: true
+      description: id_livro numérico
+      schema:
+        type: integer
+    AutorId:
+      name: id
+      in: path
+      required: true
+      description: id_autor numérico
+      schema:
+        type: integer
+    CategoriaId:
+      name: id
+      in: path
+      required: true
+      description: id_categoria numérico
+      schema:
+        type: integer
+    EditoraId:
+      name: id
+      in: path
+      required: true
+      description: id_editora numérico
+      schema:
+        type: integer
+    ColecaoId:
+      name: id
+      in: path
+      required: true
+      description: id_colecao numérico
+      schema:
+        type: integer
+  responses:
+    BadRequest:
+      description: Requisição inválida, validação ou falha no upload
+      content:
+        application/json:
+          schema:
+            oneOf:
+              - $ref: '#/components/schemas/ErrorMessage'
+              - $ref: '#/components/schemas/LegacyError'
+              - $ref: '#/components/schemas/ValidationErrors'
+    Unauthorized:
+      description: Token ausente ou usuário não autenticado
+      content:
+        application/json:
+          schema:
+            $ref: '#/components/schemas/ErrorMessage'
+    Forbidden:
+      description: Token inválido ou usuário sem permissão
+      content:
+        application/json:
+          schema:
+            $ref: '#/components/schemas/ErrorMessage'
+    NotFound:
+      description: Recurso não encontrado
+      content:
+        application/json:
+          schema:
+            $ref: '#/components/schemas/ErrorMessage'
+    InternalServerError:
+      description: Erro interno do servidor
+      content:
+        application/json:
+          schema:
+            $ref: '#/components/schemas/ErrorMessage'
+  schemas:
+    ErrorMessage:
+      type: object
+      properties:
+        mensagem:
+          type: string
+      required: [mensagem]
+      example:
+        mensagem: Erro interno do servidor
+    ErrorWithDetails:
+      type: object
+      properties:
+        mensagem:
+          type: string
+        erro:
+          type: object
+          additionalProperties: true
+      required: [mensagem, erro]
+    LegacyError:
+      type: object
+      properties:
+        erro:
+          type: string
+      required: [erro]
+      example:
+        erro: Arquivo não encontrado
+    ValidationErrors:
+      type: object
+      description: Erros retornados diretamente por express-validator.
+      properties:
+        erros:
+          type: array
+          items:
+            type: object
+            additionalProperties: true
+      required: [erros]
+    MessageResponse:
+      type: object
+      properties:
+        mensagem:
+          type: string
+      required: [mensagem]
+
+    LoginRequest:
+      type: object
+      properties:
+        email:
+          type: string
+          format: email
+        senha:
+          type: string
+          format: password
+      required: [email, senha]
+    LoginResponse:
+      type: object
+      properties:
+        mensagem:
+          type: string
+        token:
+          type: string
+          description: JWT assinado pelo backend
+        usuario:
+          $ref: '#/components/schemas/UsuarioLogin'
+      required: [mensagem, token, usuario]
+    UsuarioLogin:
+      type: object
+      properties:
+        id:
+          type: integer
+        nome:
+          type: string
+        email:
+          type: string
+          format: email
+        cpf:
+          type: string
+        role:
+          type: string
+        foto_perfil:
+          type: string
+          nullable: true
+      required: [id, nome, email, cpf, role, foto_perfil]
+    UsuarioCreateRequest:
+      type: object
+      properties:
+        nome:
+          type: string
+        email:
+          type: string
+          format: email
+        senha:
+          type: string
+          format: password
+          minLength: 6
+          description: Deve conter uma letra maiúscula e um caractere especial.
+        confirmarSenha:
+          type: string
+          format: password
+          description: Deve ser igual a senha.
+        cpf:
+          type: string
+          description: CPF válido; o backend remove caracteres de formatação.
+        foto_perfil:
+          type: string
+          format: binary
+          description: Arquivo opcional. O limite Multer é 10 MiB.
+      required: [nome, email, senha, confirmarSenha, cpf]
+    UsuarioCreateResponse:
+      type: object
+      properties:
+        id:
+          type: integer
+        nome:
+          type: string
+        email:
+          type: string
+          format: email
+        cpf:
+          type: string
+        role:
+          type: string
+        foto_perfil:
+          type: string
+          nullable: true
+      required: [id, nome, email, cpf, role, foto_perfil]
+    UsuarioUpdateRequest:
+      type: object
+      properties:
+        nome:
+          type: string
+          description: Opcional, mas não pode ser vazio quando informado.
+        senha:
+          type: string
+          format: password
+          minLength: 6
+          description: Deve conter uma letra maiúscula e um caractere especial.
+        cpf:
+          type: string
+          description: CPF válido; o backend remove caracteres de formatação.
+        foto_perfil:
+          type: string
+          format: binary
+          description: Arquivo opcional. O limite Multer é 10 MiB.
+    UsuarioUpdateResponse:
+      type: object
+      properties:
+        mensagem:
+          type: string
+        id_usuario:
+          type: integer
+        nome:
+          type: string
+        email:
+          type: string
+          format: email
+        cpf:
+          type: string
+        role:
+          type: string
+        foto_perfil:
+          type: string
+          nullable: true
+      required: [mensagem, id_usuario, nome, email, cpf, role, foto_perfil]
+    UsuarioProfile:
+      type: object
+      properties:
+        id_usuario:
+          type: integer
+        nome:
+          type: string
+        email:
+          type: string
+          format: email
+        cpf:
+          type: string
+        role:
+          type: string
+        foto_perfil:
+          type: string
+          nullable: true
+      required: [id_usuario, nome, email, cpf, role, foto_perfil]
+    UsuarioAdmin:
+      type: object
+      description: >-
+        Campos não sensíveis retornados para administração. A resposta Sequelize
+        atual também pode conter a senha armazenada (hash); ela foi omitida desta
+        documentação por ser informação sensível.
+      properties:
+        id_usuario:
+          type: integer
+        nome:
+          type: string
+        email:
+          type: string
+          format: email
+        cpf:
+          type: string
+        id_role:
+          type: integer
+        foto_perfil:
+          type: string
+          nullable: true
+        role:
+          $ref: '#/components/schemas/Role'
+        createdAt:
+          type: string
+          format: date-time
+        updatedAt:
+          type: string
+          format: date-time
+      required: [id_usuario, nome, email, cpf, id_role, foto_perfil, role]
+    Role:
+      type: object
+      properties:
+        id_role:
+          type: integer
+        nome:
+          type: string
+      required: [id_role, nome]
+    Destinatario:
+      type: object
+      properties:
+        id_usuario:
+          type: integer
+        email:
+          type: string
+          format: email
+      required: [id_usuario, email]
+
+    Livro:
+      type: object
+      properties:
+        id_livro:
+          type: integer
+        id_autor:
+          type: integer
+        titulo:
+          type: string
+        descricao:
+          type: string
+        capa_imagem:
+          type: string
+          description: Nome do arquivo gerado no upload.
+        arquivo_pdf:
+          type: string
+          description: Nome do arquivo gerado no upload.
+        id_categoria:
+          type: integer
+        id_editora:
+          type: integer
+        id_colecao:
+          type: integer
+          nullable: true
+        destaque:
+          type: boolean
+        createdAt:
+          type: string
+          format: date-time
+        updatedAt:
+          type: string
+          format: date-time
+      required:
+        - id_livro
+        - id_autor
+        - titulo
+        - descricao
+        - capa_imagem
+        - arquivo_pdf
+        - id_categoria
+        - id_editora
+        - id_colecao
+        - destaque
+    LivroCreateRequest:
+      type: object
+      properties:
+        id_autor:
+          type: string
+          description: ID numérico do autor, enviado como campo de formulário.
+        titulo:
+          type: string
+        descricao:
+          type: string
+        id_categoria:
+          type: string
+          description: ID numérico da categoria, enviado como campo de formulário.
+        id_editora:
+          type: string
+          description: ID numérico da editora, enviado como campo de formulário.
+        id_colecao:
+          type: string
+          nullable: true
+          description: ID numérico opcional; vazio ou ausente grava null.
+        destaque:
+          type: string
+          enum: ['true', 'false']
+          description: Somente a string true grava destaque true.
+        capa_imagem:
+          type: string
+          format: binary
+          description: Imagem obrigatória JPEG, JPG, PNG ou WEBP; máximo 10 MiB.
+        arquivo_pdf:
+          type: string
+          format: binary
+          description: PDF obrigatório; máximo 10 MiB.
+      required:
+        - id_autor
+        - titulo
+        - descricao
+        - id_categoria
+        - id_editora
+        - capa_imagem
+        - arquivo_pdf
+    LivroUpdateRequest:
+      type: object
+      properties:
+        id_autor:
+          type: string
+        titulo:
+          type: string
+        descricao:
+          type: string
+        id_categoria:
+          type: string
+        id_editora:
+          type: string
+        id_colecao:
+          type: string
+          nullable: true
+        destaque:
+          type: string
+          enum: ['true', 'false']
+        capa_imagem:
+          type: string
+          format: binary
+          description: Imagem opcional JPEG, JPG, PNG ou WEBP; máximo 10 MiB.
+        arquivo_pdf:
+          type: string
+          format: binary
+          description: PDF opcional; máximo 10 MiB.
+    LivroComAssociacoes:
+      allOf:
+        - $ref: '#/components/schemas/Livro'
+        - type: object
+          properties:
+            autor:
+              $ref: '#/components/schemas/Autor'
+            categoria:
+              $ref: '#/components/schemas/Categoria'
+            editora:
+              $ref: '#/components/schemas/Editora'
+            colecao:
+              allOf:
+                - $ref: '#/components/schemas/Colecao'
+              type: object
+              nullable: true
+    LivroAutorCategoria:
+      allOf:
+        - $ref: '#/components/schemas/Livro'
+        - type: object
+          properties:
+            autor:
+              $ref: '#/components/schemas/Autor'
+            categoria:
+              $ref: '#/components/schemas/Categoria'
+
+    Autor:
+      type: object
+      properties:
+        id_autor:
+          type: integer
+        nome:
+          type: string
+        biografia:
+          type: string
+        foto:
+          type: string
+        createdAt:
+          type: string
+          format: date-time
+        updatedAt:
+          type: string
+          format: date-time
+      required: [id_autor, nome, biografia, foto]
+    AutorCreateRequest:
+      type: object
+      properties:
+        nome:
+          type: string
+        biografia:
+          type: string
+        foto:
+          type: string
+          format: binary
+          description: O controller não exige arquivo, mas o model não aceita foto nula. Limite de 10 MiB.
+      required: [nome, biografia, foto]
+    AutorUpdateRequest:
+      type: object
+      properties:
+        nome:
+          type: string
+        biografia:
+          type: string
+        foto:
+          type: string
+          format: binary
+          description: Foto opcional; se omitida, mantém a atual. Limite de 10 MiB.
+
+    Categoria:
+      type: object
+      properties:
+        id_categoria:
+          type: integer
+        nome:
+          type: string
+        descricao:
+          type: string
+        destaque:
+          type: boolean
+        createdAt:
+          type: string
+          format: date-time
+        updatedAt:
+          type: string
+          format: date-time
+      required: [id_categoria, nome, descricao, destaque]
+    CategoriaCreateRequest:
+      type: object
+      properties:
+        nome:
+          type: string
+        descricao:
+          type: string
+        destaque:
+          type: boolean
+          default: false
+      required: [nome, descricao]
+    CategoriaUpdateRequest:
+      type: object
+      properties:
+        nome:
+          type: string
+        descricao:
+          type: string
+        destaque:
+          type: boolean
+
+    Editora:
+      type: object
+      properties:
+        id_editora:
+          type: integer
+        nome:
+          type: string
+        descricao:
+          type: string
+        createdAt:
+          type: string
+          format: date-time
+        updatedAt:
+          type: string
+          format: date-time
+      required: [id_editora, nome, descricao]
+    EditoraWriteRequest:
+      type: object
+      properties:
+        nome:
+          type: string
+        descricao:
+          type: string
+      required: [nome, descricao]
+    EditoraUpdateRequest:
+      type: object
+      properties:
+        nome:
+          type: string
+        descricao:
+          type: string
+
+    Colecao:
+      type: object
+      properties:
+        id_colecao:
+          type: integer
+        nome:
+          type: string
+        descricao:
+          type: string
+        createdAt:
+          type: string
+          format: date-time
+        updatedAt:
+          type: string
+          format: date-time
+      required: [id_colecao, nome, descricao]
+    ColecaoWriteRequest:
+      type: object
+      properties:
+        nome:
+          type: string
+        descricao:
+          type: string
+      required: [nome, descricao]
+    ColecaoUpdateRequest:
+      type: object
+      properties:
+        nome:
+          type: string
+        descricao:
+          type: string
