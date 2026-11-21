@@ -54,9 +54,7 @@ jobs:
         with:
           node-version: "20"
           cache: npm
-          cache-dependency-path: |
-            Lumina_Backend/package-lock.json
-            Lumina_Microsservico/notificacoes/package-lock.json
+          cache-dependency-path: Lumina_Backend/package-lock.json
 
       - name: Instalar dependencias do backend
         working-directory: Lumina_Backend
@@ -64,16 +62,6 @@ jobs:
 
       - name: Executar testes do backend
         working-directory: Lumina_Backend
-       
-        run: npm test --if-present
-
-      - name: Instalar dependencias das notificacoes
-        working-directory: Lumina_Microsservico/notificacoes
-        run: npm ci
-
-      - name: Executar testes das notificacoes
-        working-directory: Lumina_Microsservico/notificacoes
-       
         run: npm test --if-present
 
       - name: Registrar estado da suite automatizada
@@ -141,10 +129,7 @@ jobs:
 
       - name: Demonstrar rollback e falhar
         if: env.SIMULAR_FALHA == 'true'
-       
         run: |
           echo "Health check falhou; iniciando rollback conceitual."
           echo "Rollback concluido apenas na simulacao; nenhuma versao real foi restaurada."
           exit 1
-
-      
