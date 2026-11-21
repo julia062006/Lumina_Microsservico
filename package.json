@@ -7,9 +7,6 @@
   },
   "scripts": {
     "prepare": "husky",
-    "test:backend": "cd Lumina_Backend && npm test",
-    "test:e2e": "cd Lumina_Frontend && npx playwright test",
-    "test": "npm run test:backend && npm run test:e2e",
     "typecheck": "cd Lumina_Backend && npm run typecheck"
   },
   "dependencies": {
