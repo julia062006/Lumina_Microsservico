@@ -71,42 +71,50 @@ function Inicio() {
         <main>
             <div>
                 <div
-                    className="p-16 min-h-screen bg-no-repeat"
+                    className="relative px-16 pb-16 bg-no-repeat"
                     style={{
-                        backgroundImage: `url(${bg}), url(${bh})`,
-                        backgroundSize: "1000px, cover",
-                        backgroundPosition: "right 35px, center",
-                        backgroundRepeat: "no-repeat, no-repeat"
+                        backgroundImage: `url(${bh})`,
+                        backgroundSize: "cover",
+                        backgroundPosition: "center",
                     }}>
 
-                    <section id="inicio" className="max-w-2xl pl-8 pb-16">
-                        <h1 className="text-5xl lg:text-6xl font-medium leading-[1.15] tracking-tight">
-                            Ilumine sua <br />
-                            <span style={{ color: 'var(--lumina-purple)' }}>
-                                Leitura
-                            </span>
-                        </h1>
+                    <img
+                        src={bg}
+                        alt=""
+                        aria-hidden="true"
+                        className="hidden lg:block pointer-events-none absolute right-0 top-[calc(50vh+40px)] -translate-y-1/2 w-[1250px] max-w-none"
+                    />
 
-                        <p className="text-lg text-muted-foreground max-w-lg mt-6 leading-relaxed">
-                            Mais do que uma plataforma, a Lumina é o seu portal para{' '}
-                            <span className="text-foreground font-medium">conhecimento</span>,{' '}
-                            <span className="text-foreground font-medium">imaginação</span> e{' '}
-                            <span className="text-foreground font-medium">descoberta</span>.
-                        </p>
+                    <section id="inicio" className="relative z-10 flex min-h-[calc(100vh-80px)] items-center">
+                        <div className="max-w-2xl pl-8">
+                            <h1 className="text-5xl lg:text-6xl font-medium leading-[1.15] tracking-tight">
+                                Ilumine sua <br />
+                                <span style={{ color: 'var(--lumina-purple)' }}>
+                                    Leitura
+                                </span>
+                            </h1>
 
-                        <div className="flex gap-4 mt-6">
-                            <BotaoPrimario onClick={() => navigate("/biblioteca")} className="px-8 py-3 text-base">
-                                Explorar Livros
-                            </BotaoPrimario>
-                            {!token && (
-                                <Link to="/cadastroUsuario">
-                                    <BotaoSecundario className="!bg-white px-8 py-3 text-base">Criar Conta</BotaoSecundario>
-                                </Link>
-                            )}
+                            <p className="text-lg text-muted-foreground max-w-lg mt-6 leading-relaxed">
+                                Mais do que uma plataforma, a Lumina é o seu portal para{' '}
+                                <span className="text-foreground font-medium">conhecimento</span>,{' '}
+                                <span className="text-foreground font-medium">imaginação</span> e{' '}
+                                <span className="text-foreground font-medium">descoberta</span>.
+                            </p>
+
+                            <div className="flex gap-4 mt-6">
+                                <BotaoPrimario onClick={() => navigate("/biblioteca")} className="px-8 py-3 text-base">
+                                    Explorar Livros
+                                </BotaoPrimario>
+                                {!token && (
+                                    <Link to="/cadastroUsuario">
+                                        <BotaoSecundario className="!bg-white px-8 py-3 text-base">Criar Conta</BotaoSecundario>
+                                    </Link>
+                                )}
+                            </div>
                         </div>
                     </section>
 
-                    <section id="categoria" className="pt-16 bg-muted/30 mt-10">
+                    <section id="categoria" className="relative z-10 pt-8">
                         <div className="container mx-auto px-6 lg:px-8">
                             <div className="text-center mb-12">
                                 <h2 className="text-3xl lg:text-4xl font-medium mb-4 mt-10">
