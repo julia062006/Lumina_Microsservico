@@ -65,6 +65,7 @@ function Biblioteca() {
                         Nenhum livro encontrado.
                     </p>
                 ) : (
+                    <div className="container mx-auto px-6 lg:px-8">
                     <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-6">
                         {livros.map((livro) => (
                             <LivroCartao
@@ -72,6 +73,7 @@ function Biblioteca() {
                                 livro={mapearLivroParaCartao(livro)}
                             />
                         ))}
+                    </div>
                     </div>
                 )}
             </div>
