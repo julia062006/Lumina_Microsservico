@@ -1,4 +1,4 @@
-# ADR 0001: Escolha do banco de dados
+# ADR-003: Escolha do banco de dados
 
 - **Status:** Aceito
 - **Data:** 21/11/2026
@@ -19,6 +19,8 @@ Os principais requisitos que influenciam a escolha são:
 
 Adotar o **MySQL** como banco de dados relacional principal.
 
+O microsserviço de notificações tem **seu próprio banco MySQL 8.0** (`notificacoes-db`), separado do banco do backend. Cada serviço é dono dos seus dados, e eles se comunicam por evento (Redis) e por API interna, nunca pelo banco um do outro.
+
 O **Redis** é mantido como complemento, e não como banco de dados principal. Ele atua como cache de consultas frequentes e como canal de Pub/Sub para a comunicação entre o backend e o microsserviço de notificações (evento de novo livro cadastrado).
 
 ## Alternativas consideradas
@@ -32,6 +34,7 @@ O **Redis** é mantido como complemento, e não como banco de dados principal. E
 ## Consequências
 
 **Positivas**
+
 - O modelo relacional representa naturalmente as relações entre livros, autores, categorias, editoras e coleções.
 - Chaves estrangeiras garantem a integridade dos dados.
 - O Sequelize oferece suporte maduro ao MySQL (models, associações e migrations).
@@ -39,6 +42,7 @@ O **Redis** é mantido como complemento, e não como banco de dados principal. E
 - O Redis reduz a carga sobre o MySQL nas consultas mais frequentes.
 
 **Negativas / riscos**
+
 - A escalabilidade é predominantemente vertical. Para um volume muito maior seria preciso planejar réplicas de leitura.
 - Mudanças de esquema exigem migrations e cuidado com os dados existentes.
 - O cache no Redis introduz o risco de dados desatualizados, tratado com invalidação ao cadastrar, editar ou remover livros.
