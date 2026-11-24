@@ -6,7 +6,7 @@
 
 ## Contexto
 
-Com o microsserviço de notificações separado (ADR-001), o backend precisa avisá-lo quando um livro é cadastrado, sem esperar o envio do e-mail terminar. Além disso, o backend faz consultas repetidas ao catálogo que podem ser guardadas em cache. O Redis já estava no projeto, então podia atender às duas necessidades.
+Com o microsserviço de notificações separado (ADR-001), o backend precisa avisá-lo quando um livro é cadastrado, sem esperar o envio do e-mail terminar. Além disso, o backend faz consultas repetidas ao catálogo que podem ser guardadas em cache. O Redis, usado para o cache, também oferece Pub/Sub, então podia atender às duas necessidades.
 
 ## Decisão
 
@@ -29,7 +29,7 @@ Com o microsserviço de notificações separado (ADR-001), o backend precisa avi
 **Positivas**
 
 - O cadastro do livro não espera o e-mail.
-- Sem novo componente: o Redis já estava no Docker Compose.
+- Sem componente extra: o mesmo Redis do cache atende também à comunicação por eventos.
 - Publicador e assinante não se conhecem, só combinam o nome do canal.
 - Consultas frequentes ao catálogo deixam de ir ao MySQL a cada requisição.
 
